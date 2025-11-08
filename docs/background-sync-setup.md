@@ -41,12 +41,13 @@ Generate a secure random string for `SYNC_SECRET_KEY` (e.g., using `openssl rand
 **See `docs/vercel-cron-setup.md` for detailed setup instructions.**
 
 Quick setup:
-1. The `vercel.json` file is already in your project root
+1. The `vercel.json` file is already in your project root (configured for daily sync - compatible with Hobby plan)
 2. Add environment variables in Vercel Dashboard:
-   - `CRON_SECRET` (optional, for extra security)
    - `SYNC_SECRET_KEY` (optional, for manual triggers)
 3. Deploy to Vercel - the cron job will be automatically set up
-4. The sync will run every hour automatically
+4. The sync will run once per day automatically (at midnight UTC)
+
+**Note**: Vercel Hobby plan is limited to daily cron jobs. The current schedule (`0 0 * * *`) runs once per day. For hourly syncs, upgrade to Pro plan or use an external cron service (see Option B below).
 
 #### Option B: External Cron Service
 

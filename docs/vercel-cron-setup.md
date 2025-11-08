@@ -17,7 +17,9 @@ The `vercel.json` file has already been created in your project root with the fo
 }
 ```
 
-This configures Vercel to call `/api/sync/recently-played` every hour (at minute 0 of every hour).
+This configures Vercel to call `/api/sync/recently-played` once per day at midnight (00:00 UTC).
+
+**Note**: Vercel Hobby plan is limited to daily cron jobs. For hourly syncs, you'll need to upgrade to Pro plan or use an external cron service.
 
 ## Step 2: Set Environment Variables in Vercel
 
@@ -128,10 +130,19 @@ The sync handles rate limiting automatically with delays between requests.
 
 You can change the schedule in `vercel.json`:
 
-- `0 * * * *` - Every hour at minute 0 (current)
+**Hobby Plan (Daily Limit):**
+- `0 0 * * *` - Once per day at midnight UTC (current, compatible with Hobby plan)
+- `0 12 * * *` - Once per day at noon UTC
+- `0 0 * * 1` - Once per week (Monday at midnight)
+
+**Pro Plan (Unlimited):**
+- `0 * * * *` - Every hour at minute 0
 - `*/30 * * * *` - Every 30 minutes
 - `0 */2 * * *` - Every 2 hours
-- `0 0 * * *` - Once per day at midnight
+
+**Note**: Vercel Hobby plan is limited to **one cron job per day**. For hourly syncs, you'll need to:
+- Upgrade to Pro plan, OR
+- Use an external cron service (see `docs/background-sync-setup.md` for alternatives)
 
 For more schedule options, see [Vercel Cron Documentation](https://vercel.com/docs/cron-jobs).
 
