@@ -57,6 +57,6 @@ export async function getUserPlaylists(
 ): Promise<SpotifyPlaylist[]> {
   const spotifyApi = createSpotifyClient(accessToken);
   const data = await spotifyApi.getUserPlaylists({ limit });
-  return data.body.items;
+  return data.body.items as SpotifyPlaylist[];
 }
 
