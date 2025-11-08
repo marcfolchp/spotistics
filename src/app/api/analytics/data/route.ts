@@ -71,8 +71,8 @@ export async function GET(request: NextRequest) {
     let frequencyData: ListeningFrequency[] | null = null;
     let timePatterns: TimePattern[] | null = null;
     let dayPatterns: DayPattern[] | null = null;
-    let topTracks: TopTrack[] | null = null;
-    let topArtists: TopArtist[] | null = null;
+    let topTracks: AggregatedTopTrack[] | null = null;
+    let topArtists: AggregatedTopArtist[] | null = null;
 
     try {
       [frequencyData, timePatterns, dayPatterns, topTracks, topArtists] = await Promise.all([

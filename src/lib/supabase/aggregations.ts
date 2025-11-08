@@ -1,5 +1,5 @@
 import { createSupabaseServerClient } from './client';
-import type { ListeningFrequency, TimePattern, DayPattern, TopTrack, TopArtist } from '@/types';
+import type { ListeningFrequency, TimePattern, DayPattern, AggregatedTopTrack, AggregatedTopArtist } from '@/types';
 
 /**
  * Get aggregated listening data by date (much faster than fetching all rows)
@@ -283,7 +283,7 @@ export async function getTopTracksOptimized(userId: string, limit: number = 10):
  * Get top artists - optimized
  * Fetches ALL data in chunks to ensure accurate top artists
  */
-export async function getTopArtistsOptimized(userId: string, limit: number = 10): Promise<TopArtist[]> {
+export async function getTopArtistsOptimized(userId: string, limit: number = 10): Promise<AggregatedTopArtist[]> {
   const supabase = createSupabaseServerClient();
 
   // Fetch ALL data in chunks (Supabase has 1000 row limit per query)

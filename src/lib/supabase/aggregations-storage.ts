@@ -16,7 +16,7 @@ interface AggregationRecord {
 export async function storeAggregation(
   userId: string,
   type: AggregationType,
-  data: ListeningFrequency[] | TimePattern[] | DayPattern[] | TopTrack[] | TopArtist[],
+  data: ListeningFrequency[] | TimePattern[] | DayPattern[] | AggregatedTopTrack[] | AggregatedTopArtist[],
   groupBy?: 'day' | 'month' | 'year'
 ): Promise<void> {
   const supabase = createSupabaseServerClient();
@@ -122,8 +122,8 @@ export async function storeAllAggregations(
     dateFrequency?: { day: ListeningFrequency[]; month: ListeningFrequency[]; year: ListeningFrequency[] };
     timePattern?: TimePattern[];
     dayPattern?: DayPattern[];
-    topTracks?: TopTrack[];
-    topArtists?: TopArtist[];
+    topTracks?: AggregatedTopTrack[];
+    topArtists?: AggregatedTopArtist[];
   }
 ): Promise<void> {
   const supabase = createSupabaseServerClient();
