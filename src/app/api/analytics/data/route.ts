@@ -79,8 +79,8 @@ export async function GET(request: NextRequest) {
         getAggregation<ListeningFrequency>(userId, 'date_frequency', groupBy).catch(() => null),
         getAggregation<TimePattern>(userId, 'time_pattern').catch(() => null),
         getAggregation<DayPattern>(userId, 'day_pattern').catch(() => null),
-        getAggregation<TopTrack>(userId, 'top_tracks').catch(() => null),
-        getAggregation<TopArtist>(userId, 'top_artists').catch(() => null),
+        getAggregation<AggregatedTopTrack>(userId, 'top_tracks').catch(() => null),
+        getAggregation<AggregatedTopArtist>(userId, 'top_artists').catch(() => null),
       ]);
     } catch (error) {
       console.warn('Error fetching aggregations (table might not exist yet):', error);
