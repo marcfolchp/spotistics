@@ -1,0 +1,9 @@
+{
+  "crons": [
+    {
+      "path": "/api/sync/recently-played",
+      "schedule": "0 * * * *"
+    }
+  ]
+}
+
