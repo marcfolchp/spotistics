@@ -19,7 +19,7 @@ export async function getRecentlyPlayed(
 ): Promise<SpotifyTrack[]> {
   const spotifyApi = createSpotifyClient(accessToken);
   const data = await spotifyApi.getMyRecentlyPlayedTracks({ limit });
-  return data.body.items.map((item) => item.track);
+  return data.body.items.map((item: any) => item.track);
 }
 
 /**
