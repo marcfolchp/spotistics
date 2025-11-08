@@ -2,7 +2,7 @@
 
 export interface SpotifyUser {
   id: string;
-  display_name: string;
+  display_name?: string;
   email?: string;
   images?: Array<{ url: string; height?: number; width?: number }>;
   country?: string;
