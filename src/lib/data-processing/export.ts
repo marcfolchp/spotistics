@@ -57,7 +57,7 @@ export function parseCSV(csvContent: string): Promise<SpotifyExportTrack[]> {
           reject(error);
         }
       },
-      error: (error) => {
+      error: (error: Error) => {
         reject(error);
       },
     });
