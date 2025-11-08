@@ -1,4 +1,4 @@
-import { ProcessedListeningData, ListeningFrequency, TopTrack, TopArtist, TimePattern, DayPattern } from '@/types';
+import { ProcessedListeningData, ListeningFrequency, AggregatedTopTrack, AggregatedTopArtist, TimePattern, DayPattern } from '@/types';
 import { format, getHours, getDay } from 'date-fns';
 
 /**
@@ -44,7 +44,7 @@ export function aggregateByDate(
  * Get top tracks by play count
  * Returns simplified format for storage
  */
-export function getTopTracks(data: ProcessedListeningData[], limit: number = 10): TopTrack[] {
+export function getTopTracks(data: ProcessedListeningData[], limit: number = 10): AggregatedTopTrack[] {
   const trackMap = new Map<string, { trackName: string; artistName: string; playCount: number; totalDuration: number }>();
 
   data.forEach((item) => {
@@ -78,7 +78,7 @@ export function getTopTracks(data: ProcessedListeningData[], limit: number = 10)
  * Get top artists by play count
  * Returns simplified format for storage
  */
-export function getTopArtists(data: ProcessedListeningData[], limit: number = 10): TopArtist[] {
+export function getTopArtists(data: ProcessedListeningData[], limit: number = 10): AggregatedTopArtist[] {
   const artistMap = new Map<string, { artistName: string; playCount: number; totalDuration: number }>();
 
   data.forEach((item) => {

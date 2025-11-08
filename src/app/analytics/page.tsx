@@ -6,7 +6,7 @@ import { useRouter } from 'next/navigation';
 import { TimePatternChart } from '@/components/charts/TimePatternChart';
 import { DayPatternChart } from '@/components/charts/DayPatternChart';
 import { StatsCards } from '@/components/dashboard/StatsCards';
-import type { TimePattern, DayPattern, TopTrack, TopArtist, ListeningStats } from '@/types';
+import type { TimePattern, DayPattern, AggregatedTopTrack, AggregatedTopArtist, ListeningStats } from '@/types';
 
 export default function AnalyticsPage() {
   return (
@@ -20,8 +20,8 @@ function AnalyticsContent() {
   const router = useRouter();
   const [timePatterns, setTimePatterns] = useState<TimePattern[]>([]);
   const [dayPatterns, setDayPatterns] = useState<DayPattern[]>([]);
-  const [topTracks, setTopTracks] = useState<TopTrack[]>([]);
-  const [topArtists, setTopArtists] = useState<TopArtist[]>([]);
+  const [topTracks, setTopTracks] = useState<AggregatedTopTrack[]>([]);
+  const [topArtists, setTopArtists] = useState<AggregatedTopArtist[]>([]);
   const [summary, setSummary] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);

@@ -1,5 +1,5 @@
 import { createSupabaseServerClient } from './client';
-import type { ListeningFrequency, TimePattern, DayPattern, TopTrack, TopArtist } from '@/types';
+import type { ListeningFrequency, TimePattern, DayPattern, AggregatedTopTrack, AggregatedTopArtist } from '@/types';
 
 type AggregationType = 'date_frequency' | 'time_pattern' | 'day_pattern' | 'top_tracks' | 'top_artists';
 

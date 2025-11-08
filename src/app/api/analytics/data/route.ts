@@ -3,7 +3,7 @@ import { cookies } from 'next/headers';
 import { getAuthenticatedToken } from '@/lib/api/middleware';
 import { getUserDataSummary } from '@/lib/supabase/storage';
 import { getAggregation } from '@/lib/supabase/aggregations-storage';
-import type { ListeningFrequency, TimePattern, DayPattern, TopTrack, TopArtist } from '@/types';
+import type { ListeningFrequency, TimePattern, DayPattern, AggregatedTopTrack, AggregatedTopArtist } from '@/types';
 
 /**
  * GET /api/analytics/data

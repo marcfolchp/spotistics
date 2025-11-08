@@ -98,8 +98,23 @@ export interface TopTrack {
   totalDuration: number;
 }
 
+// Simplified format for aggregated data (from user exports)
+export interface AggregatedTopTrack {
+  trackName: string;
+  artistName: string;
+  playCount: number;
+  totalDuration: number;
+}
+
 export interface TopArtist {
   artist: SpotifyArtist;
+  playCount: number;
+  totalDuration: number;
+}
+
+// Simplified format for aggregated data (from user exports)
+export interface AggregatedTopArtist {
+  artistName: string;
   playCount: number;
   totalDuration: number;
 }

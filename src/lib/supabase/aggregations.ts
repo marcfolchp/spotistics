@@ -214,7 +214,7 @@ export async function getDayPatternsOptimized(userId: string): Promise<DayPatter
  * Get top tracks - optimized
  * Fetches ALL data in chunks to ensure accurate top tracks
  */
-export async function getTopTracksOptimized(userId: string, limit: number = 10): Promise<TopTrack[]> {
+export async function getTopTracksOptimized(userId: string, limit: number = 10): Promise<AggregatedTopTrack[]> {
   const supabase = createSupabaseServerClient();
 
   // Fetch ALL data in chunks (Supabase has 1000 row limit per query)
