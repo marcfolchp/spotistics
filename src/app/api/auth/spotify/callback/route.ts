@@ -46,23 +46,20 @@ export async function GET(request: NextRequest) {
     // Calculate expiration time
     const expiresAt = new Date(Date.now() + expiresIn * 1000);
 
-    // Get the base URL from the request
+    // Get the base URL from the request (use actual request origin, not redirect URI)
     const baseUrl = new URL(request.url);
     const origin = `${baseUrl.protocol}//${baseUrl.host}`;
     
-    // Normalize domain - use the domain from SPOTIFY_REDIRECT_URI to ensure consistency
-    const redirectUriUrl = new URL(redirectUri);
-    const normalizedOrigin = `${redirectUriUrl.protocol}//${redirectUriUrl.host}`;
-    
     console.log('Request origin:', origin);
-    console.log('Redirect URI origin:', normalizedOrigin);
-    console.log('Using normalized origin for redirect:', normalizedOrigin);
+    console.log('Redirect URI:', redirectUri);
+    console.log('Using request origin for redirect:', origin);
 
     // Set cookies with tokens
     const cookieStore = await cookies();
     
-    // Create response with redirect using normalized origin
-    const response = NextResponse.redirect(new URL('/dashboard', normalizedOrigin));
+    // Create response with redirect using the actual request origin
+    // This ensures production URLs work correctly
+    const response = NextResponse.redirect(new URL('/dashboard', origin));
     
     // Set cookies on the response directly
     response.cookies.set('spotify_access_token', accessToken, {
@@ -103,8 +100,7 @@ export async function GET(request: NextRequest) {
     }
 
     console.log('Cookies set on response, redirecting to dashboard');
-    console.log('Redirect URL:', new URL('/dashboard', normalizedOrigin).toString());
-    console.log('⚠️ IMPORTANT: Make sure you access the app via:', normalizedOrigin);
+    console.log('Redirect URL:', new URL('/dashboard', origin).toString());
 
     return response;
   } catch (error) {
