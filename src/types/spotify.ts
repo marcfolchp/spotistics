@@ -41,7 +41,7 @@ export interface SpotifyArtist {
 export interface SpotifyPlaylist {
   id: string;
   name: string;
-  description?: string;
+  description?: string | null;
   images?: Array<{ url: string; height?: number; width?: number }>;
   owner: {
     display_name: string;
