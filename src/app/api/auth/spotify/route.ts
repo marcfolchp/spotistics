@@ -22,10 +22,16 @@ export async function GET(request: NextRequest) {
 
   // Log the redirect URI being used (for debugging)
   console.log('Using redirect URI:', redirectUri);
+  console.log('Environment:', process.env.NODE_ENV);
+  console.log('Request URL:', request.url);
 
   try {
     const authUrl = getAuthorizationUrl(redirectUri, clientId);
-    return NextResponse.json({ url: authUrl });
+    console.log('Generated auth URL:', authUrl);
+    return NextResponse.json({ 
+      url: authUrl,
+      redirectUri: redirectUri // Include in response for debugging
+    });
   } catch (error) {
     console.error('Error generating authorization URL:', error);
     return NextResponse.json(

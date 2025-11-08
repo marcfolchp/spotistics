@@ -27,6 +27,11 @@ export async function GET(request: NextRequest) {
   const clientSecret = process.env.SPOTIFY_CLIENT_SECRET;
   const redirectUri = process.env.SPOTIFY_REDIRECT_URI || 'http://localhost:3000/api/auth/spotify/callback';
 
+  // Log for debugging
+  console.log('Callback - Redirect URI from env:', redirectUri);
+  console.log('Callback - Request URL:', request.url);
+  console.log('Callback - Environment:', process.env.NODE_ENV);
+
   if (!clientId || !clientSecret) {
     return NextResponse.redirect(
       new URL('/login?error=config', request.url)
@@ -34,6 +39,7 @@ export async function GET(request: NextRequest) {
   }
 
   try {
+    console.log('Exchanging code for token with redirect URI:', redirectUri);
     const { accessToken, refreshToken, expiresIn } = await exchangeCodeForToken(
       code,
       redirectUri,
