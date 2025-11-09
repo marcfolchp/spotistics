@@ -1,0 +1,33 @@
+name: Sync Recently Played Tracks
+
+on:
+  schedule:
+    # Run every hour at minute 0 (e.g., 1:00, 2:00, 3:00, etc.)
+    - cron: '0 * * * *'
+  # Allow manual triggering from GitHub Actions UI
+  workflow_dispatch:
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Call Sync API
+        run: |
+          response=$(curl -s -w "\n%{http_code}" -X GET "${{ secrets.SYNC_API_URL }}" \
+            -H "Authorization: Bearer ${{ secrets.SYNC_SECRET_KEY }}" \
+            -H "Content-Type: application/json")
+          
+          http_code=$(echo "$response" | tail -n1)
+          body=$(echo "$response" | sed '$d')
+          
+          echo "HTTP Status: $http_code"
+          echo "Response: $body"
+          
+          if [ "$http_code" -ge 200 ] && [ "$http_code" -lt 300 ]; then
+            echo "✅ Sync completed successfully"
+            exit 0
+          else
+            echo "❌ Sync failed with status $http_code"
+            exit 1
+          fi
+
