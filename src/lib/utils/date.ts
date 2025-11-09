@@ -77,6 +77,14 @@ export function formatDurationHours(ms: number): string {
 }
 
 /**
+ * Format duration to minutes only (no hours)
+ */
+export function formatDurationMinutes(ms: number): string {
+  const minutes = Math.floor(ms / 60000);
+  return `${minutes.toLocaleString()}m`;
+}
+
+/**
  * Format relative time (e.g., "5 minutes ago", "2 hours ago")
  */
 export function formatRelativeTime(date: Date | string): string {

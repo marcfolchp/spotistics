@@ -1,6 +1,6 @@
 'use client';
 
-import { formatDurationHours } from '@/lib/utils/date';
+import { formatDurationMinutes } from '@/lib/utils/date';
 import type { ListeningStats } from '@/types';
 
 interface StatsCardsProps {
@@ -8,7 +8,7 @@ interface StatsCardsProps {
 }
 
 export function StatsCards({ stats }: StatsCardsProps) {
-  const totalHours = Math.round(stats.totalListeningTime / 3600000); // Convert to hours
+  const totalMinutes = Math.round(stats.totalListeningTime / 60000); // Convert to minutes
   const totalDays = Math.round(stats.totalListeningTime / 86400000); // Convert to days
 
   return (
@@ -25,7 +25,7 @@ export function StatsCards({ stats }: StatsCardsProps) {
       />
       <StatCard
         title="Total Listening Time"
-        value={formatDurationHours(stats.totalListeningTime)}
+        value={formatDurationMinutes(stats.totalListeningTime)}
         description={`${totalDays} days of music`}
       />
       <StatCard
