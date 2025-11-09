@@ -46,7 +46,7 @@ function DashboardContent() {
   };
 
   return (
-    <div className="min-h-screen bg-[#121212]">
+    <div className="min-h-screen w-full overflow-x-hidden bg-[#121212]">
       <nav className="border-b border-[#2A2A2A] bg-[#000000]">
         <div className="mx-auto max-w-7xl px-3 sm:px-6 lg:px-8">
           <div className="flex h-14 items-center justify-between sm:h-16">

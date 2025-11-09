@@ -7,7 +7,7 @@ import Image from 'next/image';
 export default function LoginPage() {
   return (
     <Suspense fallback={
-      <div className="flex min-h-screen items-center justify-center bg-[#121212]">
+      <div className="flex min-h-screen w-full items-center justify-center overflow-x-hidden bg-[#121212]">
         <div className="text-center">
           <svg
             className="mx-auto h-12 w-12 animate-spin text-[#1DB954]"
@@ -98,7 +98,7 @@ function LoginContent() {
   };
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-[#121212] px-4">
+    <div className="flex min-h-screen w-full items-center justify-center overflow-x-hidden bg-[#121212] px-4">
       <div className="w-full max-w-md space-y-6 rounded-2xl bg-[#181818] p-6 sm:space-y-8 sm:p-8">
         <div className="text-center">
           <div className="mb-4 flex justify-center">

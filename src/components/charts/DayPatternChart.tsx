@@ -28,7 +28,7 @@ export function DayPatternChart({ data }: DayPatternChartProps) {
       <h3 className="mb-3 text-base font-bold text-white sm:mb-4 sm:text-lg">
         Listening by Day of Week
       </h3>
-      <div className="w-full overflow-x-auto">
+      <div className="w-full overflow-x-auto -mx-4 px-4 sm:mx-0 sm:px-0">
         <ResponsiveContainer width="100%" height={250} minHeight={250}>
           <BarChart data={chartData} margin={{ top: 5, right: 10, left: 0, bottom: 5 }}>
             <CartesianGrid strokeDasharray="3 3" stroke="#2A2A2A" />

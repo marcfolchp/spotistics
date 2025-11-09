@@ -19,7 +19,7 @@ export default function Home() {
   }, [isAuthenticated, isLoading, router]);
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-[#121212]">
+    <div className="flex min-h-screen w-full items-center justify-center overflow-x-hidden bg-[#121212]">
       <div className="text-center">
         <svg
           className="mx-auto h-12 w-12 animate-spin text-[#1DB954]"
