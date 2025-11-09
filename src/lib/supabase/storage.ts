@@ -296,3 +296,108 @@ export async function deleteUserListeningData(userId: string): Promise<void> {
   }
 }
 
+/**
+ * Store recent tracks with full metadata for dashboard display
+ * Keeps only the most recent 100 tracks per user
+ */
+export async function storeRecentTracks(
+  userId: string,
+  tracks: Array<{ track: any; playedAt: Date }>
+): Promise<void> {
+  const supabase = createSupabaseServerClient();
+
+  // Prepare data for insertion
+  const rows = tracks.map(({ track, playedAt }) => ({
+    user_id: userId,
+    track_data: {
+      ...track,
+      playedAt: playedAt.toISOString(),
+    },
+    played_at: playedAt.toISOString(),
+  }));
+
+  // Delete existing recent tracks for this user (we'll replace them all)
+  const { error: deleteError } = await supabase
+    .from('recent_tracks')
+    .delete()
+    .eq('user_id', userId);
+
+  if (deleteError) {
+    console.error('Error deleting old recent tracks:', deleteError);
+    // Continue anyway - the trigger will clean up
+  }
+
+  // Insert new tracks (limit to 100 most recent)
+  const tracksToInsert = rows.slice(0, 100);
+  
+  if (tracksToInsert.length === 0) {
+    return;
+  }
+
+  const { error } = await supabase
+    .from('recent_tracks')
+    .insert(tracksToInsert);
+
+  if (error) {
+    console.error('[Recent Tracks] Error storing recent tracks:', error);
+    console.error('[Recent Tracks] Error details:', {
+      code: error.code,
+      message: error.message,
+      details: error.details,
+      hint: error.hint,
+    });
+    throw new Error(`Failed to store recent tracks: ${error.message}`);
+  }
+
+  console.log(`[Recent Tracks] Successfully stored ${tracksToInsert.length} recent tracks for user ${userId}`);
+}
+
+/**
+ * Get recent tracks for a user (for dashboard display)
+ * Returns up to 100 most recent tracks with full metadata
+ */
+export async function getRecentTracks(
+  userId: string,
+  limit: number = 100
+): Promise<Array<{ track: any; playedAt: Date }>> {
+  const supabase = createSupabaseServerClient();
+
+  const { data, error } = await supabase
+    .from('recent_tracks')
+    .select('*')
+    .eq('user_id', userId)
+    .order('played_at', { ascending: false })
+    .limit(limit);
+
+  if (error) {
+    // Check if table doesn't exist (common error code)
+    if (error.code === '42P01' || error.message?.includes('does not exist')) {
+      console.warn(`[Recent Tracks] Table 'recent_tracks' does not exist. Please run the SQL from docs/supabase-recent-tracks-table.md`);
+      throw new Error('RECENT_TRACKS_TABLE_NOT_FOUND');
+    }
+    console.error('Error fetching recent tracks:', error);
+    throw new Error(`Failed to fetch recent tracks: ${error.message}`);
+  }
+
+  if (!data) {
+    return [];
+  }
+
+  // Convert database rows to track objects
+  return data.map((row) => {
+    const trackData = row.track_data as any;
+    const playedAt = new Date(row.played_at);
+    
+    // Extract playedAt from track_data if it exists, otherwise use row.played_at
+    const track = { ...trackData };
+    if (track.playedAt) {
+      delete track.playedAt; // Remove from track object, we'll use the Date separately
+    }
+    
+    return {
+      track,
+      playedAt,
+    };
+  });
+}
+

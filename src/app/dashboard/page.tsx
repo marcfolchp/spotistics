@@ -5,8 +5,9 @@ import { useSession } from '@/contexts/SessionContext';
 import { RecentTracks } from '@/components/dashboard/RecentTracks';
 import { TopArtists } from '@/components/dashboard/TopArtists';
 import { TopTracks } from '@/components/dashboard/TopTracks';
+import { TopGenres } from '@/components/dashboard/TopGenres';
 import { useRouter } from 'next/navigation';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import type { SpotifyUser } from '@/types';
 
 export default function DashboardPage() {
@@ -22,9 +23,20 @@ function DashboardContent() {
   const { logout } = useSession();
   const [profile, setProfile] = useState<SpotifyUser | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const fetchingRef = useRef(false);
+  const lastFetchRef = useRef<number>(0);
 
   useEffect(() => {
     async function fetchProfile() {
+      // Prevent duplicate calls in development (React Strict Mode)
+      const now = Date.now();
+      if (fetchingRef.current || now - lastFetchRef.current < 200) {
+        return;
+      }
+
+      fetchingRef.current = true;
+      lastFetchRef.current = now;
+
       try {
         const response = await fetch('/api/spotify/profile');
         if (response.ok) {
@@ -35,6 +47,7 @@ function DashboardContent() {
         console.error('Error fetching profile:', error);
       } finally {
         setIsLoading(false);
+        fetchingRef.current = false;
       }
     }
 
@@ -144,8 +157,9 @@ function DashboardContent() {
               <TopTracks />
             </div>
 
-            <div className="grid gap-4 sm:gap-6 lg:grid-cols-1">
+            <div className="grid gap-4 sm:gap-6 lg:grid-cols-2">
               <TopArtists />
+              <TopGenres />
             </div>
           </div>
         )}

@@ -149,23 +149,23 @@ function TimeRangeSelector({
     <div className="flex w-fit gap-0.5 rounded-full bg-[#2A2A2A] p-0.5 sm:gap-1 sm:p-1">
       <button
         onClick={() => onChange('short_term')}
-        className={`rounded-full px-1.5 py-0.5 text-[9px] font-semibold leading-tight transition-all active:scale-95 sm:px-2.5 sm:py-1 sm:text-[11px] md:px-3 md:text-xs ${
+        className={`rounded-full px-2 py-0.5 text-[9px] font-semibold leading-tight transition-all active:scale-95 sm:px-3 sm:py-1 sm:text-[11px] md:px-4 md:text-xs ${
           value === 'short_term'
             ? 'bg-white text-black'
             : 'text-[#B3B3B3] hover:text-white'
         }`}
       >
-        4W
+        Weeks
       </button>
       <button
         onClick={() => onChange('medium_term')}
-        className={`rounded-full px-1.5 py-0.5 text-[9px] font-semibold leading-tight transition-all active:scale-95 sm:px-2.5 sm:py-1 sm:text-[11px] md:px-3 md:text-xs ${
+        className={`rounded-full px-2 py-0.5 text-[9px] font-semibold leading-tight transition-all active:scale-95 sm:px-3 sm:py-1 sm:text-[11px] md:px-4 md:text-xs ${
           value === 'medium_term'
             ? 'bg-white text-black'
             : 'text-[#B3B3B3] hover:text-white'
         }`}
       >
-        6M
+        Months
       </button>
       <button
         onClick={() => onChange('long_term')}

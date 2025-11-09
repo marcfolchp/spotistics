@@ -40,7 +40,10 @@ export async function getRecentlyPlayedWithTimestamps(
   let hasMore = true;
   let totalFetched = 0;
   
-  console.log(`Fetching recently played tracks (requested limit: ${limit})...`);
+  // Only log in development or when limit > 50 (to reduce noise)
+  if (process.env.NODE_ENV === 'development' && limit > 50) {
+    console.log(`Fetching recently played tracks (requested limit: ${limit})...`);
+  }
   
   while (hasMore && totalFetched < limit) {
     const requestLimit = Math.min(maxPerRequest, limit - totalFetched);
@@ -67,7 +70,10 @@ export async function getRecentlyPlayedWithTimestamps(
       allTracks.push(...tracks);
       totalFetched += tracks.length;
       
-      console.log(`Fetched ${tracks.length} tracks (total: ${totalFetched})`);
+      // Only log in development or when limit > 50
+      if (process.env.NODE_ENV === 'development' && limit > 50) {
+        console.log(`Fetched ${tracks.length} tracks (total: ${totalFetched})`);
+      }
       
       // If we got fewer than requested, we've reached the end
       if (tracks.length < requestLimit) {
@@ -96,11 +102,14 @@ export async function getRecentlyPlayedWithTimestamps(
     }
   }
   
-  console.log(`Total tracks fetched: ${allTracks.length}`);
-  if (allTracks.length > 0) {
-    const newest = allTracks[0].playedAt;
-    const oldest = allTracks[allTracks.length - 1].playedAt;
-    console.log(`Time range: ${newest.toISOString()} to ${oldest.toISOString()}`);
+  // Only log in development or when limit > 50
+  if (process.env.NODE_ENV === 'development' && limit > 50) {
+    console.log(`Total tracks fetched: ${allTracks.length}`);
+    if (allTracks.length > 0) {
+      const newest = allTracks[0].playedAt;
+      const oldest = allTracks[allTracks.length - 1].playedAt;
+      console.log(`Time range: ${newest.toISOString()} to ${oldest.toISOString()}`);
+    }
   }
   
   return allTracks;

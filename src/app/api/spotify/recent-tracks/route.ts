@@ -5,7 +5,7 @@ import { getRecentlyPlayedWithTimestamps } from '@/lib/spotify/api';
 /**
  * GET /api/spotify/recent-tracks
  * Get user's recently played tracks with timestamps
- * Returns fresh data from Spotify API (no caching)
+ * Fetches directly from Spotify API
  */
 export async function GET(request: NextRequest) {
   const authResult = await getAuthenticatedToken();
@@ -15,13 +15,10 @@ export async function GET(request: NextRequest) {
   }
 
   const searchParams = request.nextUrl.searchParams;
-  // Increase default limit to 100 to catch more recent tracks
-  const limit = parseInt(searchParams.get('limit') || '100', 10);
+  const limit = parseInt(searchParams.get('limit') || '50', 10);
 
   try {
-    console.log(`[Recent Tracks API] Fetching ${limit} recently played tracks...`);
     const tracksWithTimestamps = await getRecentlyPlayedWithTimestamps(authResult.token, limit);
-    console.log(`[Recent Tracks API] Fetched ${tracksWithTimestamps.length} tracks`);
     
     // Return tracks with timestamps as ISO strings for JSON serialization
     const tracks = tracksWithTimestamps.map(({ track, playedAt }) => ({

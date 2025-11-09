@@ -1,15 +1,14 @@
 'use client';
 
 import { useState } from 'react';
-import { useTopArtists } from '@/hooks/useSpotifyData';
-import type { SpotifyArtist } from '@/types';
+import { useTopGenres } from '@/hooks/useSpotifyData';
 
 type TimeRange = 'short_term' | 'medium_term' | 'long_term';
 
-export function TopArtists() {
+export function TopGenres() {
   const [timeRange, setTimeRange] = useState<TimeRange>('medium_term');
   const [isChanging, setIsChanging] = useState(false);
-  const { artists, isLoading, error } = useTopArtists(timeRange);
+  const { genres, isLoading, error } = useTopGenres(timeRange);
 
   const handleTimeRangeChange = (newRange: TimeRange) => {
     if (newRange !== timeRange) {
@@ -25,13 +24,13 @@ export function TopArtists() {
       <div className="rounded-lg bg-[#181818] p-4 sm:p-6">
         <div className="flex items-center justify-between">
           <h3 className="text-base font-bold text-white sm:text-lg">
-            Top Artists
+            Top Genres
           </h3>
         </div>
         <div className="mt-3 space-y-2 sm:mt-4 sm:space-y-3">
           {[...Array(5)].map((_, i) => (
             <div key={i} className="flex items-center gap-3">
-              <div className="h-12 w-12 animate-pulse rounded-full bg-[#2A2A2A] sm:h-16 sm:w-16" />
+              <div className="h-8 w-8 flex-shrink-0 animate-pulse rounded-full bg-[#2A2A2A] sm:h-10 sm:w-10" />
               <div className="flex-1 space-y-2">
                 <div className="h-4 w-3/4 animate-pulse rounded bg-[#2A2A2A]" />
                 <div className="h-3 w-1/2 animate-pulse rounded bg-[#2A2A2A]" />
@@ -47,21 +46,21 @@ export function TopArtists() {
     return (
       <div className="rounded-lg bg-[#181818] p-4 sm:p-6">
         <h3 className="text-base font-bold text-white sm:text-lg">
-          Top Artists
+          Top Genres
         </h3>
         <p className="mt-2 text-sm text-red-400">{error}</p>
       </div>
     );
   }
 
-  if (artists.length === 0) {
+  if (genres.length === 0) {
     return (
       <div className="rounded-lg bg-[#181818] p-4 sm:p-6">
         <h3 className="text-base font-bold text-white sm:text-lg">
-          Top Artists
+          Top Genres
         </h3>
         <p className="mt-2 text-sm text-[#B3B3B3]">
-          No top artists found.
+          No genres found. Listen to more music to see your top genres!
         </p>
       </div>
     );
@@ -74,7 +73,7 @@ export function TopArtists() {
     <div className="w-full max-w-full overflow-hidden rounded-lg bg-[#181818] p-4 transition-colors hover:bg-[#282828] sm:p-6">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <h3 className="text-base font-bold text-white sm:text-lg">
-          Top Artists
+          Top Genres
         </h3>
         <TimeRangeSelector value={timeRange} onChange={handleTimeRangeChange} />
       </div>
@@ -82,7 +81,7 @@ export function TopArtists() {
         <div className="mt-3 space-y-2 sm:mt-4 sm:space-y-3">
           {[...Array(5)].map((_, i) => (
             <div key={i} className="flex items-center gap-3">
-              <div className="h-12 w-12 animate-pulse rounded-full bg-[#2A2A2A] sm:h-16 sm:w-16" />
+              <div className="h-8 w-8 flex-shrink-0 animate-pulse rounded-full bg-[#2A2A2A] sm:h-10 sm:w-10" />
               <div className="flex-1 space-y-2">
                 <div className="h-4 w-3/4 animate-pulse rounded bg-[#2A2A2A]" />
                 <div className="h-3 w-1/2 animate-pulse rounded bg-[#2A2A2A]" />
@@ -92,8 +91,8 @@ export function TopArtists() {
         </div>
       ) : (
         <div className="mt-3 w-full max-w-full space-y-1 sm:mt-4 sm:space-y-2">
-          {artists.slice(0, 10).map((artist, index) => (
-            <ArtistItem key={artist.id} artist={artist} rank={index + 1} />
+          {genres.slice(0, 10).map((genre, index) => (
+            <GenreItem key={genre.name} genre={genre} rank={index + 1} />
           ))}
         </div>
       )}
@@ -101,43 +100,41 @@ export function TopArtists() {
   );
 }
 
-function ArtistItem({ artist, rank }: { artist: SpotifyArtist; rank: number }) {
-  const imageUrl = artist.images?.[0]?.url || '';
+function GenreItem({ genre, rank }: { genre: { name: string; count: number; imageUrl?: string; artistName?: string }; rank: number }) {
+  // Capitalize first letter of each word
+  const formattedName = genre.name
+    .split(' ')
+    .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+    .join(' ');
 
   return (
-    <a
-      href={artist.external_urls.spotify}
-      target="_blank"
-      rel="noopener noreferrer"
-      className="group flex w-full max-w-full items-center gap-2 overflow-hidden rounded-md p-2 transition-colors hover:bg-[#2A2A2A] active:bg-[#333333] sm:gap-3"
-    >
+    <div className="group flex w-full max-w-full items-center gap-2 overflow-hidden rounded-md p-2 transition-colors hover:bg-[#2A2A2A] active:bg-[#333333] sm:gap-3">
       <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full bg-[#2A2A2A] text-xs font-semibold text-[#B3B3B3] sm:h-10 sm:w-10 sm:text-sm">
         {rank}
       </div>
-      {imageUrl ? (
+      {genre.imageUrl ? (
         <img
-          src={imageUrl}
-          alt={artist.name}
+          src={genre.imageUrl}
+          alt={genre.artistName || formattedName}
           className="h-12 w-12 flex-shrink-0 rounded-full object-cover sm:h-16 sm:w-16"
         />
       ) : (
-        <div className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-full bg-[#2A2A2A] sm:h-16 sm:w-16">
-          <span className="text-lg font-bold text-[#B3B3B3]">
-            {artist.name[0]?.toUpperCase() || '?'}
+        <div className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-[#1DB954] to-[#1ed760] sm:h-16 sm:w-16">
+          <span className="text-lg font-bold text-white sm:text-xl">
+            {genre.name.charAt(0).toUpperCase()}
           </span>
         </div>
       )}
       <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
         <p className="truncate text-sm font-medium text-white group-hover:text-white sm:text-base">
-          {artist.name}
+          {formattedName}
         </p>
-        {artist.genres && artist.genres.length > 0 && (
-          <p className="truncate text-xs text-[#B3B3B3] sm:text-sm">
-            {artist.genres.slice(0, 2).join(', ')}
-          </p>
-        )}
+        <p className="truncate text-xs text-[#B3B3B3] sm:text-sm">
+          {genre.count} {genre.count === 1 ? 'artist' : 'artists'}
+          {genre.artistName && ` • ${genre.artistName}`}
+        </p>
       </div>
-    </a>
+    </div>
   );
 }
 

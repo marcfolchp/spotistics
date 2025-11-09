@@ -3,7 +3,7 @@ import { cookies } from 'next/headers';
 import { refreshAccessToken } from '@/lib/spotify/auth';
 import { getAllRecentlyPlayed } from '@/lib/spotify/recently-played';
 import { convertSpotifyTrackToProcessed } from '@/lib/data-processing/sync';
-import { getListeningData, storeListeningData, getUserDataSummary, storeUserDataSummary } from '@/lib/supabase/storage';
+import { getListeningData, storeListeningData, getUserDataSummary, storeUserDataSummary, storeRecentTracks } from '@/lib/supabase/storage';
 import { getUserRefreshToken } from '@/lib/supabase/tokens';
 import { getMostRecentPlayedAt, filterNewTracks } from '@/lib/data-processing/sync';
 import { storeAllAggregations, deleteUserAggregations } from '@/lib/supabase/aggregations-storage';
@@ -174,36 +174,56 @@ async function syncUserRecentlyPlayed(
   const afterTimestamp = mostRecentPlayedAt ? mostRecentPlayedAt.getTime() : undefined;
   const recentlyPlayed = await getAllRecentlyPlayed(accessToken, 1000, afterTimestamp);
 
-  if (recentlyPlayed.length === 0) {
+  let uniqueNewTracks: ProcessedListeningData[] = [];
+  let newTracksCount = 0;
+
+  if (recentlyPlayed.length > 0) {
+    // Convert to ProcessedListeningData
+    const newTracks = recentlyPlayed.map(item =>
+      convertSpotifyTrackToProcessed(item.track, item.playedAt)
+    );
+
+    // For deduplication, we need to check against all existing data
+    // But to avoid fetching everything, we'll use a database query to check for duplicates
+    // For now, let's fetch a sample of recent tracks for deduplication
+    const recentExistingData = await getListeningData(userId, 1000);
+    uniqueNewTracks = filterNewTracks(newTracks, recentExistingData);
+
+    if (uniqueNewTracks.length > 0) {
+      console.log(`Found ${uniqueNewTracks.length} new tracks for user ${userId}`);
+      // Store new tracks in Supabase
+      await storeListeningData(userId, uniqueNewTracks);
+      newTracksCount = uniqueNewTracks.length;
+    } else {
+      console.log(`No new unique tracks found for user ${userId}`);
+    }
+  } else {
     console.log(`No new tracks found for user ${userId}`);
-    // Get total count from summary if available
-    const summary = await getUserDataSummary(userId);
-    const totalTracks = summary?.total_tracks || 0;
-    return { newTracksCount: 0, totalTracks };
   }
 
-  // Convert to ProcessedListeningData
-  const newTracks = recentlyPlayed.map(item =>
-    convertSpotifyTrackToProcessed(item.track, item.playedAt)
-  );
-
-  // For deduplication, we need to check against all existing data
-  // But to avoid fetching everything, we'll use a database query to check for duplicates
-  // For now, let's fetch a sample of recent tracks for deduplication
-  const recentExistingData = await getListeningData(userId, 1000);
-  const uniqueNewTracks = filterNewTracks(newTracks, recentExistingData);
-
-  if (uniqueNewTracks.length === 0) {
-    console.log(`No new unique tracks found for user ${userId}`);
-    const summary = await getUserDataSummary(userId);
-    const totalTracks = summary?.total_tracks || 0;
-    return { newTracksCount: 0, totalTracks };
+  // Update recent tracks cache for dashboard display (fetch last 100 from Spotify)
+  // Always update recent tracks, even if no new tracks were found (to keep cache fresh)
+  try {
+    console.log(`[Recent Tracks] Fetching recent tracks from Spotify for user ${userId}...`);
+    const { getRecentlyPlayedWithTimestamps } = await import('@/lib/spotify/api');
+    const recentTracksForDisplay = await getRecentlyPlayedWithTimestamps(accessToken, 100);
+    console.log(`[Recent Tracks] Fetched ${recentTracksForDisplay.length} tracks from Spotify`);
+    
+    if (recentTracksForDisplay.length > 0) {
+      await storeRecentTracks(userId, recentTracksForDisplay);
+      console.log(`[Recent Tracks] Successfully stored ${recentTracksForDisplay.length} recent tracks for user ${userId}`);
+    } else {
+      console.warn(`[Recent Tracks] No tracks fetched from Spotify for user ${userId}`);
+    }
+  } catch (error: any) {
+    console.error(`[Recent Tracks] Error updating recent tracks cache for user ${userId}:`, error);
+    console.error(`[Recent Tracks] Error details:`, {
+      message: error?.message,
+      code: error?.code,
+      stack: error?.stack,
+    });
+    // Don't fail the sync if recent tracks update fails
   }
-
-  console.log(`Found ${uniqueNewTracks.length} new tracks for user ${userId}`);
-
-  // Store new tracks in Supabase
-  await storeListeningData(userId, uniqueNewTracks);
 
   // Get all data for aggregations (this is necessary for accurate aggregations)
   const { getAllListeningData } = await import('@/lib/supabase/storage');
@@ -261,10 +281,10 @@ async function syncUserRecentlyPlayed(
     dateRangeEnd: newestDate,
   });
 
-  console.log(`Successfully synced ${uniqueNewTracks.length} new tracks for user ${userId}`);
+  console.log(`Successfully synced ${newTracksCount} new tracks for user ${userId}`);
 
   return {
-    newTracksCount: uniqueNewTracks.length,
+    newTracksCount: newTracksCount,
     totalTracks: allData.length,
   };
 }
