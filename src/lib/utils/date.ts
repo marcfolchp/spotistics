@@ -84,3 +84,11 @@ export function formatRelativeTime(date: Date | string): string {
   return formatDistanceToNow(dateObj, { addSuffix: true });
 }
 
+/**
+ * Format exact timestamp (e.g., "Nov 9, 2024 at 2:30 PM")
+ */
+export function formatExactTimestamp(date: Date | string): string {
+  const dateObj = typeof date === 'string' ? parseISO(date) : date;
+  return format(dateObj, 'MMM d, yyyy \'at\' h:mm a');
+}
+

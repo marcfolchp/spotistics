@@ -1,7 +1,7 @@
 'use client';
 
 import { useRecentlyPlayed } from '@/hooks/useSpotifyData';
-import { formatRelativeTime } from '@/lib/utils/date';
+import { formatExactTimestamp } from '@/lib/utils/date';
 import type { SpotifyTrackWithTimestamp } from '@/types';
 
 export function RecentTracks() {
@@ -93,7 +93,7 @@ function TrackItem({ track }: { track: SpotifyTrackWithTimestamp }) {
         </p>
       </div>
       <div className="ml-2 flex-shrink-0 text-xs text-[#B3B3B3] sm:ml-3 sm:text-sm">
-        {formatRelativeTime(track.playedAt)}
+        {formatExactTimestamp(track.playedAt)}
       </div>
     </a>
   );
