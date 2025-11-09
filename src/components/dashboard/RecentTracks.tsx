@@ -1,8 +1,8 @@
 'use client';
 
 import { useRecentlyPlayed } from '@/hooks/useSpotifyData';
-import { formatDuration } from '@/lib/utils/date';
-import type { SpotifyTrack } from '@/types';
+import { formatRelativeTime } from '@/lib/utils/date';
+import type { SpotifyTrackWithTimestamp } from '@/types';
 
 export function RecentTracks() {
   const { tracks, isLoading, error } = useRecentlyPlayed();
@@ -66,7 +66,7 @@ export function RecentTracks() {
   );
 }
 
-function TrackItem({ track }: { track: SpotifyTrack }) {
+function TrackItem({ track }: { track: SpotifyTrackWithTimestamp }) {
   const imageUrl = track.album.images?.[0]?.url || '';
   const artistNames = track.artists.map((a) => a.name).join(', ');
 
@@ -93,7 +93,7 @@ function TrackItem({ track }: { track: SpotifyTrack }) {
         </p>
       </div>
       <div className="ml-2 flex-shrink-0 text-xs text-[#B3B3B3] sm:ml-3 sm:text-sm">
-        {formatDuration(track.duration_ms)}
+        {formatRelativeTime(track.playedAt)}
       </div>
     </a>
   );

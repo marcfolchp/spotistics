@@ -155,6 +155,72 @@ export async function getAllListeningData(userId: string): Promise<ProcessedList
 }
 
 /**
+ * Get listening data filtered by date range (much faster than fetching all and filtering)
+ * Supabase has a default limit of 1000 rows, so we need to paginate
+ */
+export async function getListeningDataByDateRange(
+  userId: string,
+  startDate: Date,
+  endDate: Date
+): Promise<ProcessedListeningData[]> {
+  const supabase = createSupabaseServerClient();
+
+  const allData: ProcessedListeningData[] = [];
+  const pageSize = 1000; // Supabase default limit
+  let offset = 0;
+  let hasMore = true;
+
+  const startISO = startDate.toISOString();
+  const endISO = endDate.toISOString();
+
+  console.log(`Fetching listening data for user ${userId} from ${startISO} to ${endISO}...`);
+
+  while (hasMore) {
+    const { data, error, count } = await supabase
+      .from('listening_data')
+      .select('*', { count: 'exact' })
+      .eq('user_id', userId)
+      .gte('played_at', startISO)
+      .lte('played_at', endISO)
+      .order('played_at', { ascending: false })
+      .range(offset, offset + pageSize - 1);
+
+    if (error) {
+      console.error('Error fetching listening data:', error);
+      throw new Error(`Failed to fetch data: ${error.message}`);
+    }
+
+    if (!data || data.length === 0) {
+      hasMore = false;
+      break;
+    }
+
+    // Convert database rows to ProcessedListeningData
+    const processed = data.map((row) => ({
+      trackName: row.track_name,
+      artistName: row.artist_name,
+      playedAt: new Date(row.played_at),
+      durationMs: row.duration_ms,
+      source: row.source,
+      trackId: undefined,
+      artistId: undefined,
+    }));
+
+    allData.push(...processed);
+    offset += pageSize;
+
+    // Check if we've fetched all data
+    if (data.length < pageSize || (count !== null && offset >= count)) {
+      hasMore = false;
+    }
+  }
+
+  console.log(`Fetched ${allData.length} listening records for date range`);
+
+  return allData;
+}
+
+/**
  * Store or update user data summary
  */
 export async function storeUserDataSummary(

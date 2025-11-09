@@ -1,4 +1,4 @@
-import { format, parseISO, startOfDay, endOfDay, startOfMonth, endOfMonth, startOfYear, endOfYear } from 'date-fns';
+import { format, parseISO, startOfDay, endOfDay, startOfMonth, endOfMonth, startOfYear, endOfYear, formatDistanceToNow } from 'date-fns';
 
 /**
  * Format date for display
@@ -74,5 +74,13 @@ export function formatDurationHours(ms: number): string {
     return `${hours}h ${remainingMinutes}m`;
   }
   return `${minutes}m`;
+}
+
+/**
+ * Format relative time (e.g., "5 minutes ago", "2 hours ago")
+ */
+export function formatRelativeTime(date: Date | string): string {
+  const dateObj = typeof date === 'string' ? parseISO(date) : date;
+  return formatDistanceToNow(dateObj, { addSuffix: true });
 }
 

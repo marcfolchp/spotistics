@@ -6,6 +6,8 @@ import { useRouter } from 'next/navigation';
 import { TimePatternChart } from '@/components/charts/TimePatternChart';
 import { DayPatternChart } from '@/components/charts/DayPatternChart';
 import { StatsCards } from '@/components/dashboard/StatsCards';
+import { TimeRangeSelector } from '@/components/analytics/TimeRangeSelector';
+import { getTimeRangeLabel, type TimeRange } from '@/lib/utils/date-ranges';
 import type { TimePattern, DayPattern, AggregatedTopTrack, AggregatedTopArtist, ListeningStats } from '@/types';
 
 export default function AnalyticsPage() {
@@ -18,11 +20,13 @@ export default function AnalyticsPage() {
 
 function AnalyticsContent() {
   const router = useRouter();
+  const [timeRange, setTimeRange] = useState<TimeRange>('week'); // Default to 'week'
   const [timePatterns, setTimePatterns] = useState<TimePattern[]>([]);
   const [dayPatterns, setDayPatterns] = useState<DayPattern[]>([]);
   const [topTracks, setTopTracks] = useState<AggregatedTopTrack[]>([]);
   const [topArtists, setTopArtists] = useState<AggregatedTopArtist[]>([]);
   const [summary, setSummary] = useState<any>(null);
+  const [allTimeTotalCount, setAllTimeTotalCount] = useState<number>(0);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -31,7 +35,8 @@ function AnalyticsContent() {
 
     async function loadFullData() {
       try {
-        const response = await fetch('/api/analytics/data', {
+        setIsLoading(true);
+        const response = await fetch(`/api/analytics/data?timeRange=${timeRange}`, {
           credentials: 'include',
         });
         
@@ -40,13 +45,14 @@ function AnalyticsContent() {
         if (response.ok) {
           const result = await response.json();
           
-          if (result.summary && result.totalCount > 0) {
+          if (result.summary && result.totalCount >= 0) {
             // Set all aggregated data
             setSummary(result.summary);
             setTimePatterns(result.timePatterns || []);
             setDayPatterns(result.dayPatterns || []);
             setTopTracks(result.topTracks || []);
             setTopArtists(result.topArtists || []);
+            setAllTimeTotalCount(result.allTimeTotalCount || 0);
           } else {
             setError('No data found. Please upload your Spotify data export first.');
           }
@@ -66,48 +72,13 @@ function AnalyticsContent() {
       }
     }
 
-    async function loadData() {
-      try {
-        setIsLoading(true);
-        
-        // First, load summary for quick initial display
-        const summaryResponse = await fetch('/api/analytics/data?summary=true', {
-          credentials: 'include',
-        });
-        
-        if (!isMounted) return;
-        
-        if (summaryResponse.ok) {
-          const summaryData = await summaryResponse.json();
-          
-          // If we have summary, show it immediately and load full data in background
-          if (summaryData.summary && summaryData.totalCount > 0) {
-            // Load full data in background
-            loadFullData();
-          } else {
-            setError('No data found. Please upload your Spotify data export first.');
-            setIsLoading(false);
-            return;
-          }
-        } else {
-          // Try loading full data directly
-          loadFullData();
-        }
-      } catch (err) {
-        console.error('Error loading data:', err);
-        if (isMounted) {
-          setError('Failed to load data. Please try uploading again.');
-          setIsLoading(false);
-        }
-      }
-    }
-
-    loadData();
+    // Load data directly with time range filter
+    loadFullData();
 
     return () => {
       isMounted = false;
     };
-  }, []); // Load data once on mount
+  }, [timeRange]); // Reload when time range changes
 
   if (isLoading) {
     return (
@@ -243,9 +214,6 @@ function AnalyticsContent() {
     );
   }
 
-  // Show message if aggregations are missing but data exists
-  const hasAggregations = timePatterns.length > 0 || dayPatterns.length > 0;
-
   // Calculate statistics from summary
   const stats: ListeningStats = {
     totalTracks: summary.total_tracks || 0,
@@ -284,26 +252,44 @@ function AnalyticsContent() {
 
       <main className="mx-auto max-w-7xl px-4 py-6 sm:px-6 sm:py-8 lg:px-8">
         <div className="space-y-6 sm:space-y-8">
-          <div>
-            <h2 className="text-2xl font-bold text-white sm:text-3xl">Analytics</h2>
-            <p className="mt-2 text-sm text-[#B3B3B3] sm:text-base">
-              Detailed insights from your Spotify listening history
-            </p>
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <h2 className="text-2xl font-bold text-white sm:text-3xl">Analytics</h2>
+              <p className="mt-2 text-sm text-[#B3B3B3] sm:text-base">
+                Detailed insights from your Spotify listening history
+              </p>
+            </div>
+            <TimeRangeSelector value={timeRange} onChange={setTimeRange} />
           </div>
+
+          {/* Info message about uploading full data */}
+          {allTimeTotalCount > 0 && timeRange !== 'all' && summary && summary.total_tracks < allTimeTotalCount && (
+            <div className="rounded-lg border border-[#1DB954]/30 bg-[#1DB954]/10 p-4">
+              <div className="flex items-start gap-3">
+                <svg className="h-5 w-5 flex-shrink-0 text-[#1DB954] mt-0.5" fill="currentColor" viewBox="0 0 20 20">
+                  <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
+                </svg>
+                <div className="flex-1">
+                  <p className="text-sm font-medium text-white">
+                    Viewing {getTimeRangeLabel(timeRange).toLowerCase()} data
+                  </p>
+                  <p className="mt-1 text-xs text-[#B3B3B3] leading-relaxed">
+                    You're currently viewing {summary.total_tracks.toLocaleString()} tracks from {getTimeRangeLabel(timeRange).toLowerCase()}. 
+                    To see your complete listening history ({allTimeTotalCount.toLocaleString()} tracks total), upload your full Spotify data export.
+                  </p>
+                  <button
+                    onClick={() => router.push('/upload')}
+                    className="mt-2 text-xs font-semibold text-[#1DB954] transition-colors hover:text-[#1ed760] underline"
+                  >
+                    Upload Full Data →
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
 
           {/* Stats Cards */}
           <StatsCards stats={stats} />
-
-          {/* Warning if aggregations are missing */}
-          {!hasAggregations && (
-            <div className="rounded-lg border border-yellow-500/50 bg-yellow-900/20 p-4">
-              <p className="text-sm text-yellow-400">
-                <strong>Note:</strong> Charts are not available yet. The aggregations table needs to be created in Supabase. 
-                Please create the <code className="rounded bg-yellow-900/40 px-1 py-0.5">listening_aggregations</code> table 
-                (see <code className="rounded bg-yellow-900/40 px-1 py-0.5">docs/supabase-setup.md</code>) and re-upload your data.
-              </p>
-            </div>
-          )}
 
           {/* Charts */}
           <div className="grid gap-4 sm:gap-6 lg:grid-cols-2">

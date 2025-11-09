@@ -27,6 +27,11 @@ export interface SpotifyTrack {
   };
 }
 
+// Track with timestamp (for recently played)
+export interface SpotifyTrackWithTimestamp extends SpotifyTrack {
+  playedAt: Date;
+}
+
 export interface SpotifyArtist {
   id: string;
   name: string;

@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import type { SpotifyTrack, SpotifyArtist } from '@/types';
+import type { SpotifyTrack, SpotifyTrackWithTimestamp, SpotifyArtist } from '@/types';
 
 interface UseSpotifyDataOptions {
   enabled?: boolean;
@@ -9,28 +9,39 @@ interface UseSpotifyDataOptions {
 
 /**
  * Hook to fetch user's recently played tracks
+ * Auto-refreshes every 30 seconds to show new tracks
  */
 export function useRecentlyPlayed(options: UseSpotifyDataOptions = {}) {
   const { enabled = true } = options;
-  const [tracks, setTracks] = useState<SpotifyTrack[]>([]);
+  const [tracks, setTracks] = useState<SpotifyTrackWithTimestamp[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     if (!enabled) return;
 
-    const fetchTracks = async () => {
-      setIsLoading(true);
+    const fetchTracks = async (isRefresh = false) => {
+      // Only show loading state on initial load, not on refreshes
+      if (!isRefresh) {
+        setIsLoading(true);
+      }
       setError(null);
       
       try {
-        const response = await fetch('/api/spotify/recent-tracks?limit=50', {
+        // Add cache-busting timestamp to ensure fresh data
+        const response = await fetch(`/api/spotify/recent-tracks?limit=50&_=${Date.now()}`, {
           credentials: 'include',
+          cache: 'no-store', // Prevent caching
         });
         
         if (response.ok) {
           const data = await response.json();
-          setTracks(data);
+          // Convert ISO strings back to Date objects
+          const tracksWithDates = data.map((track: any) => ({
+            ...track,
+            playedAt: new Date(track.playedAt),
+          }));
+          setTracks(tracksWithDates);
         } else {
           const errorData = await response.json().catch(() => ({ error: 'Failed to fetch recent tracks' }));
           setError(errorData.error || 'Failed to fetch recent tracks');
@@ -43,7 +54,14 @@ export function useRecentlyPlayed(options: UseSpotifyDataOptions = {}) {
       }
     };
 
-    fetchTracks();
+    // Fetch immediately
+    fetchTracks(false);
+
+    // Set up auto-refresh every 30 seconds (silent refresh, no loading state)
+    const interval = setInterval(() => fetchTracks(true), 30000);
+
+    // Cleanup interval on unmount
+    return () => clearInterval(interval);
   }, [enabled]);
 
   return { tracks, isLoading, error };

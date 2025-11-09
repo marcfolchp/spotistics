@@ -1,8 +1,16 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
 import { getAuthenticatedToken } from '@/lib/api/middleware';
-import { getUserDataSummary } from '@/lib/supabase/storage';
+import { getUserDataSummary, getAllListeningData, getListeningDataByDateRange } from '@/lib/supabase/storage';
 import { getAggregation } from '@/lib/supabase/aggregations-storage';
+import { getDateRangeForTimeRange, type TimeRange } from '@/lib/utils/date-ranges';
+import {
+  aggregateByDate,
+  getTimePatterns,
+  getDayPatterns,
+  getTopTracks,
+  getTopArtists,
+} from '@/lib/data-processing/aggregate';
 import type { ListeningFrequency, TimePattern, DayPattern, AggregatedTopTrack, AggregatedTopArtist } from '@/types';
 
 /**
@@ -39,6 +47,7 @@ export async function GET(request: NextRequest) {
     const searchParams = request.nextUrl.searchParams;
     const summaryOnly = searchParams.get('summary') === 'true';
     const groupBy = (searchParams.get('groupBy') as 'day' | 'month' | 'year') || 'day';
+    const timeRange = (searchParams.get('timeRange') as TimeRange) || 'week'; // Default to 'week'
 
     if (summaryOnly) {
       // Return summary only for faster initial load
@@ -67,40 +76,114 @@ export async function GET(request: NextRequest) {
       });
     }
 
-    // Try to fetch aggregations, but handle errors gracefully (table might not exist yet)
-    let frequencyData: ListeningFrequency[] | null = null;
-    let timePatterns: TimePattern[] | null = null;
-    let dayPatterns: DayPattern[] | null = null;
-    let topTracks: AggregatedTopTrack[] | null = null;
-    let topArtists: AggregatedTopArtist[] | null = null;
+    // For "all time", use pre-computed aggregations (much faster!)
+    if (timeRange === 'all') {
+      console.log(`Using pre-computed aggregations for all-time data...`);
+      
+      // Try to fetch pre-computed aggregations
+      let frequencyData: ListeningFrequency[] | null = null;
+      let timePatterns: TimePattern[] | null = null;
+      let dayPatterns: DayPattern[] | null = null;
+      let topTracks: AggregatedTopTrack[] | null = null;
+      let topArtists: AggregatedTopArtist[] | null = null;
 
-    try {
-      [frequencyData, timePatterns, dayPatterns, topTracks, topArtists] = await Promise.all([
-        getAggregation<ListeningFrequency>(userId, 'date_frequency', groupBy).catch(() => null),
-        getAggregation<TimePattern>(userId, 'time_pattern').catch(() => null),
-        getAggregation<DayPattern>(userId, 'day_pattern').catch(() => null),
-        getAggregation<AggregatedTopTrack>(userId, 'top_tracks').catch(() => null),
-        getAggregation<AggregatedTopArtist>(userId, 'top_artists').catch(() => null),
-      ]);
-    } catch (error) {
-      console.warn('Error fetching aggregations (table might not exist yet):', error);
-      // Continue with null values - will return empty arrays
+      try {
+        [frequencyData, timePatterns, dayPatterns, topTracks, topArtists] = await Promise.all([
+          getAggregation<ListeningFrequency>(userId, 'date_frequency', groupBy).catch(() => null),
+          getAggregation<TimePattern>(userId, 'time_pattern').catch(() => null),
+          getAggregation<DayPattern>(userId, 'day_pattern').catch(() => null),
+          getAggregation<AggregatedTopTrack>(userId, 'top_tracks').catch(() => null),
+          getAggregation<AggregatedTopArtist>(userId, 'top_artists').catch(() => null),
+        ]);
+      } catch (error) {
+        console.warn('Error fetching pre-computed aggregations, will compute on the fly:', error);
+      }
+
+      // If we have pre-computed aggregations, use them
+      if (frequencyData && timePatterns && dayPatterns && topTracks && topArtists) {
+        console.log(`Using pre-computed aggregations: ${frequencyData.length} date groups, ${topTracks.length} top tracks`);
+        
+        return NextResponse.json({
+          summary,
+          frequencyData,
+          timePatterns,
+          dayPatterns,
+          topTracks: topTracks.slice(0, 10),
+          topArtists: topArtists.slice(0, 10),
+          totalCount: summary?.total_tracks || 0,
+          allTimeTotalCount: summary?.total_tracks || 0,
+        });
+      }
+
+      // Fallback: fetch all data and compute (slower, but works)
+      console.log(`Pre-computed aggregations not available, fetching all data...`);
+      const allData = await getAllListeningData(userId);
+      
+      const frequencyDataComputed = aggregateByDate(allData, groupBy);
+      const timePatternsComputed = getTimePatterns(allData);
+      const dayPatternsComputed = getDayPatterns(allData);
+      const topTracksComputed = getTopTracks(allData, 50);
+      const topArtistsComputed = getTopArtists(allData, 50);
+
+      return NextResponse.json({
+        summary,
+        frequencyData: frequencyDataComputed,
+        timePatterns: timePatternsComputed,
+        dayPatterns: dayPatternsComputed,
+        topTracks: topTracksComputed.slice(0, 10),
+        topArtists: topArtistsComputed.slice(0, 10),
+        totalCount: allData.length,
+        allTimeTotalCount: summary?.total_tracks || 0,
+      });
     }
 
-    // Limit top tracks/artists to 10 for display
-    const topTracksLimited = topTracks ? topTracks.slice(0, 10) : [];
-    const topArtistsLimited = topArtists ? topArtists.slice(0, 10) : [];
+    // For filtered time ranges, query Supabase with date filters (much faster!)
+    const dateRange = getDateRangeForTimeRange(timeRange);
+    console.log(`Fetching filtered listening data for time range: ${timeRange} (${dateRange.start.toISOString()} to ${dateRange.end.toISOString()})...`);
+    
+    const filteredData = await getListeningDataByDateRange(userId, dateRange.start, dateRange.end);
+    console.log(`Fetched ${filteredData.length} tracks for time range: ${timeRange}`);
 
-    console.log(`Fetched pre-computed data: ${frequencyData?.length || 0} date groups, ${topTracksLimited.length} top tracks`);
+    // Compute aggregations from filtered data
+    const frequencyData = aggregateByDate(filteredData, groupBy);
+    const timePatterns = getTimePatterns(filteredData);
+    const dayPatterns = getDayPatterns(filteredData);
+    const topTracks = getTopTracks(filteredData, 50);
+    const topArtists = getTopArtists(filteredData, 50);
+
+    // Limit top tracks/artists to 10 for display
+    const topTracksLimited = topTracks.slice(0, 10);
+    const topArtistsLimited = topArtists.slice(0, 10);
+
+    // Calculate filtered summary stats
+    const totalListeningTime = filteredData.reduce((sum, d) => sum + d.durationMs, 0);
+    const totalArtists = new Set(filteredData.map((d) => d.artistName)).size;
+    const sortedByDate = [...filteredData].sort((a, b) => 
+      a.playedAt.getTime() - b.playedAt.getTime()
+    );
+    const oldestDate = sortedByDate.length > 0 ? sortedByDate[0].playedAt : dateRange.start;
+    const newestDate = sortedByDate.length > 0 ? sortedByDate[sortedByDate.length - 1].playedAt : dateRange.end;
+
+    const filteredSummary = {
+      ...summary,
+      total_tracks: filteredData.length,
+      total_artists: totalArtists,
+      total_listening_time_ms: totalListeningTime,
+      date_range_start: oldestDate.toISOString(),
+      date_range_end: newestDate.toISOString(),
+    };
+
+    console.log(`Computed aggregations: ${frequencyData.length} date groups, ${topTracksLimited.length} top tracks`);
 
     return NextResponse.json({
-      summary,
-      frequencyData: frequencyData || [],
-      timePatterns: timePatterns || [],
-      dayPatterns: dayPatterns || [],
+      summary: filteredSummary,
+      frequencyData,
+      timePatterns,
+      dayPatterns,
       topTracks: topTracksLimited,
       topArtists: topArtistsLimited,
-      totalCount: summary?.total_tracks || 0,
+      totalCount: filteredData.length,
+      allTimeTotalCount: summary?.total_tracks || 0, // Include all-time count for comparison
     });
   } catch (error: any) {
     console.error('Error fetching analytics data:', error);

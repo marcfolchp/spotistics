@@ -2,8 +2,10 @@ name: Sync Recently Played Tracks
 
 on:
   schedule:
-    # Run every hour at minute 0 (e.g., 1:00, 2:00, 3:00, etc.)
-    - cron: '0 * * * *'
+    # Run every 15 minutes for faster sync
+    # Format: minute hour day month weekday
+    # Runs at: :00, :15, :30, :45 of every hour
+    - cron: '*/15 * * * *'
   # Allow manual triggering from GitHub Actions UI
   workflow_dispatch:
 
