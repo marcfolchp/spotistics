@@ -14,6 +14,7 @@ import {
   getTopTracks,
   getTopArtists,
 } from '@/lib/data-processing/aggregate';
+import type { ProcessedListeningData } from '@/types';
 
 /**
  * POST /api/sync/recently-played
