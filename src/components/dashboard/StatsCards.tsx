@@ -26,7 +26,7 @@ export function StatsCards({ stats }: StatsCardsProps) {
       <StatCard
         title="Total Listening Time"
         value={formatDurationMinutes(stats.totalListeningTime)}
-        description={`${totalDays} days of music`}
+        description={`${totalDays} days of music (minutes)`}
       />
       <StatCard
         title="Date Range"

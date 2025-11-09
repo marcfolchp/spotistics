@@ -77,11 +77,11 @@ export function formatDurationHours(ms: number): string {
 }
 
 /**
- * Format duration to minutes only (no hours)
+ * Format duration to minutes only (no hours, no unit)
  */
 export function formatDurationMinutes(ms: number): string {
   const minutes = Math.floor(ms / 60000);
-  return `${minutes.toLocaleString()}m`;
+  return minutes.toLocaleString();
 }
 
 /**
