@@ -71,7 +71,7 @@ export function TopArtists() {
   const showLoading = isLoading || isChanging;
 
   return (
-    <div className="rounded-lg bg-[#181818] p-4 transition-colors hover:bg-[#282828] sm:p-6">
+    <div className="w-full max-w-full overflow-hidden rounded-lg bg-[#181818] p-4 transition-colors hover:bg-[#282828] sm:p-6">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <h3 className="text-base font-bold text-white sm:text-lg">
           Top Artists
@@ -91,7 +91,7 @@ export function TopArtists() {
           ))}
         </div>
       ) : (
-        <div className="mt-3 space-y-1 sm:mt-4 sm:space-y-2">
+        <div className="mt-3 w-full max-w-full space-y-1 sm:mt-4 sm:space-y-2">
           {artists.slice(0, 10).map((artist, index) => (
             <ArtistItem key={artist.id} artist={artist} rank={index + 1} />
           ))}
@@ -109,7 +109,7 @@ function ArtistItem({ artist, rank }: { artist: SpotifyArtist; rank: number }) {
       href={artist.external_urls.spotify}
       target="_blank"
       rel="noopener noreferrer"
-      className="group flex items-center gap-2 rounded-md p-2 transition-colors hover:bg-[#2A2A2A] active:bg-[#333333] sm:gap-3"
+      className="group flex w-full max-w-full items-center gap-2 overflow-hidden rounded-md p-2 transition-colors hover:bg-[#2A2A2A] active:bg-[#333333] sm:gap-3"
     >
       <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full bg-[#2A2A2A] text-xs font-semibold text-[#B3B3B3] sm:h-10 sm:w-10 sm:text-sm">
         {rank}
@@ -127,7 +127,7 @@ function ArtistItem({ artist, rank }: { artist: SpotifyArtist; rank: number }) {
           </span>
         </div>
       )}
-      <div className="flex-1 min-w-0">
+      <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
         <p className="truncate text-sm font-medium text-white group-hover:text-white sm:text-base">
           {artist.name}
         </p>

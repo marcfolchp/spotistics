@@ -53,11 +53,11 @@ export function RecentTracks() {
   }
 
   return (
-    <div className="rounded-lg bg-[#181818] p-4 transition-colors hover:bg-[#282828] sm:p-6">
+    <div className="w-full max-w-full overflow-hidden rounded-lg bg-[#181818] p-4 transition-colors hover:bg-[#282828] sm:p-6">
       <h3 className="text-base font-bold text-white sm:text-lg">
         Recent Tracks
       </h3>
-      <div className="mt-3 space-y-1 sm:mt-4 sm:space-y-2">
+      <div className="mt-3 w-full max-w-full space-y-1 sm:mt-4 sm:space-y-2">
         {tracks.slice(0, 10).map((track, index) => (
           <TrackItem key={`${track.id}-${index}`} track={track} />
         ))}
@@ -75,7 +75,7 @@ function TrackItem({ track }: { track: SpotifyTrack }) {
       href={track.external_urls.spotify}
       target="_blank"
       rel="noopener noreferrer"
-      className="group flex items-center gap-2 rounded-md p-2 transition-colors hover:bg-[#2A2A2A] active:bg-[#333333] sm:gap-3"
+      className="group flex w-full max-w-full items-center gap-2 overflow-hidden rounded-md p-2 transition-colors hover:bg-[#2A2A2A] active:bg-[#333333] sm:gap-3"
     >
       {imageUrl && (
         <img
@@ -84,7 +84,7 @@ function TrackItem({ track }: { track: SpotifyTrack }) {
           className="h-10 w-10 flex-shrink-0 rounded object-cover sm:h-12 sm:w-12"
         />
       )}
-      <div className="flex-1 min-w-0">
+      <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
         <p className="truncate text-sm font-medium text-white group-hover:text-white sm:text-base">
           {track.name}
         </p>
@@ -92,7 +92,7 @@ function TrackItem({ track }: { track: SpotifyTrack }) {
           {artistNames}
         </p>
       </div>
-      <div className="flex-shrink-0 text-xs text-[#B3B3B3] sm:text-sm">
+      <div className="ml-2 flex-shrink-0 text-xs text-[#B3B3B3] sm:ml-3 sm:text-sm">
         {formatDuration(track.duration_ms)}
       </div>
     </a>
