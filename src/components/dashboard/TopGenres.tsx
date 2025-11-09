@@ -155,7 +155,7 @@ function TimeRangeSelector({
             : 'text-[#B3B3B3] hover:text-white'
         }`}
       >
-        Weeks
+        4 Weeks
       </button>
       <button
         onClick={() => onChange('medium_term')}
@@ -165,7 +165,7 @@ function TimeRangeSelector({
             : 'text-[#B3B3B3] hover:text-white'
         }`}
       >
-        Months
+        6 Months
       </button>
       <button
         onClick={() => onChange('long_term')}
