@@ -52,13 +52,23 @@ export async function GET(request: NextRequest) {
     // Calculate expiration time
     const expiresAt = new Date(Date.now() + expiresIn * 1000);
 
-    // Get the base URL from the request (use actual request origin, not redirect URI)
-    const baseUrl = new URL(request.url);
-    const origin = `${baseUrl.protocol}//${baseUrl.host}`;
+    // Get the base URL from the request
+    // For local development, use the redirect URI's origin to preserve 127.0.0.1 vs localhost
+    // For production, use the request origin
+    let origin: string;
+    if (process.env.NODE_ENV === 'development' && redirectUri.includes('127.0.0.1')) {
+      // In local dev, use the redirect URI's origin to preserve 127.0.0.1
+      const redirectUriUrl = new URL(redirectUri);
+      origin = `${redirectUriUrl.protocol}//${redirectUriUrl.host}`;
+    } else {
+      // In production or if using localhost, use the request origin
+      const baseUrl = new URL(request.url);
+      origin = `${baseUrl.protocol}//${baseUrl.host}`;
+    }
     
-    console.log('Request origin:', origin);
+    console.log('Request origin:', request.url);
     console.log('Redirect URI:', redirectUri);
-    console.log('Using request origin for redirect:', origin);
+    console.log('Using origin for redirect:', origin);
 
     // Set cookies with tokens
     const cookieStore = await cookies();
