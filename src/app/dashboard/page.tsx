@@ -95,7 +95,7 @@ function DashboardContent() {
               </button>
               <button
                 onClick={handleLogout}
-                className="hidden rounded-full px-2 py-1.5 text-[10px] font-medium text-[#B3B3B3] transition-colors hover:text-white sm:block sm:px-3 sm:text-xs lg:px-4 lg:text-sm"
+                className="rounded-full px-2 py-1.5 text-[10px] font-medium text-[#B3B3B3] transition-colors hover:text-white active:scale-95 sm:px-3 sm:text-xs lg:px-4 lg:text-sm"
               >
                 Logout
               </button>

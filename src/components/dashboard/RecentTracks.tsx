@@ -58,8 +58,8 @@ export function RecentTracks() {
         Recent Tracks
       </h3>
       <div className="mt-3 space-y-1 sm:mt-4 sm:space-y-2">
-        {tracks.slice(0, 10).map((track) => (
-          <TrackItem key={track.id} track={track} />
+        {tracks.slice(0, 10).map((track, index) => (
+          <TrackItem key={`${track.id}-${index}`} track={track} />
         ))}
       </div>
     </div>
