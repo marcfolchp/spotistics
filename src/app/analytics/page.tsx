@@ -362,7 +362,9 @@ function AnalyticsContent() {
                 Detailed insights from your Spotify listening history
               </p>
             </div>
-            <TimeRangeSelector value={timeRange} onChange={setTimeRange} />
+            <div className="w-full sm:w-auto">
+              <TimeRangeSelector value={timeRange} onChange={setTimeRange} />
+            </div>
           </div>
 
           {/* Info message about uploading full data */}
