@@ -46,7 +46,7 @@ export function MobileNav({ currentPage }: MobileNavProps) {
   };
 
   return (
-    <div className="relative sm:hidden" ref={menuRef}>
+    <div className="relative lg:hidden" ref={menuRef}>
       {/* Hamburger Button */}
       <button
         onClick={() => setIsOpen(!isOpen)}
