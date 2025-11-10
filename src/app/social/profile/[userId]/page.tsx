@@ -176,6 +176,13 @@ function UserProfileContent() {
 
   const handleRemoveFriend = async () => {
     if (!userId || isRequesting) return;
+    
+    // Show confirmation dialog
+    const confirmed = window.confirm('Are you sure you want to remove this friend?');
+    if (!confirmed) {
+      return;
+    }
+    
     setIsRequesting(true);
     try {
       const response = await fetch('/api/social/friends', {

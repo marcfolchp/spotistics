@@ -259,7 +259,7 @@ export async function GET(
     const relatabilityScore = await relatabilityPromise;
 
     // Get last listened track
-    let lastTrack: { trackName: string; artistName: string; playedAt: Date; imageUrl: string | null } | null = null;
+    let lastTrack: { trackName: string; artistName: string; playedAt: string; imageUrl: string | null } | null = null;
     try {
       const recentTracks = await getListeningData(userId, 1);
       if (recentTracks.length > 0) {
