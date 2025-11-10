@@ -549,12 +549,6 @@ function SocialManageContent() {
                   Dashboard
                 </button>
                 <button
-                  onClick={() => router.push('/upload')}
-                  className="rounded-full bg-[#1DB954] px-4 py-2 text-xs font-semibold text-white transition-all hover:bg-[#1ed760] active:scale-95 sm:px-4 sm:py-2 sm:text-xs lg:px-5 lg:text-sm"
-                >
-                  Upload
-                </button>
-                <button
                   onClick={() => router.push('/analytics')}
                   className="rounded-full border border-[#2A2A2A] bg-transparent px-4 py-2 text-xs font-semibold text-white transition-all hover:border-white hover:bg-[#2A2A2A] active:scale-95 sm:px-4 sm:py-2 sm:text-xs lg:px-5 lg:text-sm"
                 >
@@ -565,6 +559,12 @@ function SocialManageContent() {
                   className="rounded-full border border-[#2A2A2A] bg-transparent px-4 py-2 text-xs font-semibold text-white transition-all hover:border-white hover:bg-[#2A2A2A] active:scale-95 sm:px-4 sm:py-2 sm:text-xs lg:px-5 lg:text-sm"
                 >
                   Social
+                </button>
+                <button
+                  onClick={() => router.push('/upload')}
+                  className="rounded-full bg-[#1DB954] px-4 py-2 text-xs font-semibold text-white transition-all hover:bg-[#1ed760] active:scale-95 sm:px-4 sm:py-2 sm:text-xs lg:px-5 lg:text-sm"
+                >
+                  Upload
                 </button>
                 <button
                   onClick={logout}

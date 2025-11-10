@@ -95,14 +95,6 @@ export function MobileNav({ currentPage }: MobileNavProps) {
                   Dashboard
                 </button>
               )}
-              {currentPage !== 'upload' && (
-                <button
-                  onClick={() => handleNavigation('/upload')}
-                  className="w-full px-4 py-3 text-left text-sm font-medium text-white transition-colors hover:bg-[#2A2A2A] active:bg-[#333333]"
-                >
-                  Upload Data
-                </button>
-              )}
               {currentPage !== 'analytics' && (
                 <button
                   onClick={() => handleNavigation('/analytics')}
@@ -117,6 +109,14 @@ export function MobileNav({ currentPage }: MobileNavProps) {
                   className="w-full px-4 py-3 text-left text-sm font-medium text-white transition-colors hover:bg-[#2A2A2A] active:bg-[#333333]"
                 >
                   Social
+                </button>
+              )}
+              {currentPage !== 'upload' && (
+                <button
+                  onClick={() => handleNavigation('/upload')}
+                  className="w-full px-4 py-3 text-left text-sm font-medium text-white transition-colors hover:bg-[#2A2A2A] active:bg-[#333333]"
+                >
+                  Upload Data
                 </button>
               )}
               <div className="my-1 border-t border-[#2A2A2A]" />
