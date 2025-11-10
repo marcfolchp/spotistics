@@ -13,14 +13,27 @@ const scopes = [
 
 /**
  * Generate Spotify authorization URL
+ * @param redirectUri - The redirect URI for OAuth callback
+ * @param clientId - Spotify client ID
+ * @param promptSelectAccount - If true, forces account selection screen (default: true)
  */
-export function getAuthorizationUrl(redirectUri: string, clientId: string): string {
+export function getAuthorizationUrl(redirectUri: string, clientId: string, promptSelectAccount: boolean = true): string {
   const spotifyApi = new SpotifyWebApi({
     clientId,
     redirectUri,
   });
 
-  return spotifyApi.createAuthorizeURL(scopes, 'state');
+  let authUrl = spotifyApi.createAuthorizeURL(scopes, 'state');
+  
+  // Add prompt=select_account to force account selection
+  // This allows users to switch accounts even if they're already logged in to Spotify
+  if (promptSelectAccount) {
+    const url = new URL(authUrl);
+    url.searchParams.set('prompt', 'select_account');
+    authUrl = url.toString();
+  }
+
+  return authUrl;
 }
 
 /**

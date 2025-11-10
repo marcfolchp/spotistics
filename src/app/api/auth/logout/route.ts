@@ -44,7 +44,36 @@ export async function POST(request: NextRequest) {
   // Clear Spotify tokens
   cookieStore.delete('spotify_access_token');
   cookieStore.delete('spotify_refresh_token');
+  cookieStore.delete('spotify_export_summary');
 
-  return NextResponse.json({ success: true });
+  // Create response and set cookies to expire (to ensure they're cleared)
+  const response = NextResponse.json({ success: true });
+  
+  // Explicitly set cookies to expire in the past to ensure they're cleared
+  response.cookies.set('spotify_access_token', '', {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === 'production',
+    sameSite: 'lax',
+    expires: new Date(0),
+    path: '/',
+  });
+  
+  response.cookies.set('spotify_refresh_token', '', {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === 'production',
+    sameSite: 'lax',
+    expires: new Date(0),
+    path: '/',
+  });
+  
+  response.cookies.set('spotify_export_summary', '', {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === 'production',
+    sameSite: 'lax',
+    expires: new Date(0),
+    path: '/',
+  });
+
+  return response;
 }
 
