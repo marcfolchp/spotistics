@@ -340,8 +340,121 @@ function SocialManageContent() {
   };
 
   const getFriendRequestId = (user: User): string | undefined => {
+    // Check for received request
     const receivedRequest = pendingRequests.find((r) => r.from_user_id === user.user_id && r.to_user_id === currentUserId);
-    return receivedRequest?.id;
+    if (receivedRequest) return receivedRequest.id;
+    
+    // Check for sent request
+    const sentRequest = pendingRequests.find((r) => r.from_user_id === currentUserId && r.to_user_id === user.user_id);
+    if (sentRequest) return sentRequest.id;
+    
+    return undefined;
+  };
+
+  const handleRetractRequest = async (requestId: string) => {
+    try {
+      const response = await fetch('/api/social/friend-request', {
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        credentials: 'include',
+        body: JSON.stringify({ requestId }),
+      });
+
+      if (response.ok) {
+        // Refresh all requests and friends
+        const [requestsReceived, requestsSent, friendsResponse] = await Promise.all([
+          fetch('/api/social/friend-request', { credentials: 'include' }),
+          fetch('/api/social/friend-request/sent', { credentials: 'include' }),
+          fetch('/api/social/friends', { credentials: 'include' }),
+        ]);
+
+        const allRequests: FriendRequest[] = [];
+
+        if (requestsReceived.ok) {
+          const receivedData = await requestsReceived.json();
+          allRequests.push(...(receivedData.requests || []));
+        }
+
+        if (requestsSent.ok) {
+          const sentData = await requestsSent.json();
+          allRequests.push(...(sentData.requests || []));
+        }
+
+        const uniqueRequests = Array.from(
+          new Map(allRequests.map((r) => [r.id, r])).values()
+        );
+
+        setPendingRequests(uniqueRequests);
+
+        if (friendsResponse.ok) {
+          const friendsData = await friendsResponse.json();
+          setFriends(friendsData.friends || []);
+        }
+      } else {
+        const errorData = await response.json().catch(() => ({ error: 'Failed to retract friend request' }));
+        alert(errorData.error || 'Failed to retract friend request');
+      }
+    } catch (error) {
+      console.error('Error retracting friend request:', error);
+      alert('An error occurred while retracting friend request');
+    }
+  };
+
+  const handleRemoveFriend = async (friendId: string) => {
+    if (!confirm('Are you sure you want to remove this friend?')) {
+      return;
+    }
+
+    try {
+      const response = await fetch('/api/social/friends', {
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        credentials: 'include',
+        body: JSON.stringify({ friendId }),
+      });
+
+      if (response.ok) {
+        // Refresh friends and requests
+        const [friendsResponse, requestsReceived, requestsSent] = await Promise.all([
+          fetch('/api/social/friends', { credentials: 'include' }),
+          fetch('/api/social/friend-request', { credentials: 'include' }),
+          fetch('/api/social/friend-request/sent', { credentials: 'include' }),
+        ]);
+
+        if (friendsResponse.ok) {
+          const friendsData = await friendsResponse.json();
+          setFriends(friendsData.friends || []);
+        }
+
+        const allRequests: FriendRequest[] = [];
+
+        if (requestsReceived.ok) {
+          const receivedData = await requestsReceived.json();
+          allRequests.push(...(receivedData.requests || []));
+        }
+
+        if (requestsSent.ok) {
+          const sentData = await requestsSent.json();
+          allRequests.push(...(sentData.requests || []));
+        }
+
+        const uniqueRequests = Array.from(
+          new Map(allRequests.map((r) => [r.id, r])).values()
+        );
+
+        setPendingRequests(uniqueRequests);
+      } else {
+        const errorData = await response.json().catch(() => ({ error: 'Failed to remove friend' }));
+        alert(errorData.error || 'Failed to remove friend');
+      }
+    } catch (error) {
+      console.error('Error removing friend:', error);
+      alert('An error occurred while removing friend');
+    }
   };
 
   if (isLoading || !currentUserId) {
@@ -571,6 +684,8 @@ function SocialManageContent() {
                         onSendRequest={handleSendRequest}
                         onAcceptRequest={handleAcceptRequest}
                         onRejectRequest={handleRejectRequest}
+                        onRetractRequest={handleRetractRequest}
+                        onRemoveFriend={handleRemoveFriend}
                         friendRequestStatus={status}
                         friendRequestId={requestId}
                       />
@@ -663,6 +778,7 @@ function SocialManageContent() {
                             key={request.id}
                             user={user}
                             currentUserId={currentUserId!}
+                            onRetractRequest={handleRetractRequest}
                             friendRequestStatus="pending"
                             friendRequestId={request.id}
                           />
@@ -695,6 +811,7 @@ function SocialManageContent() {
                       key={friend.user_id}
                       user={friend}
                       currentUserId={currentUserId!}
+                      onRemoveFriend={handleRemoveFriend}
                       friendRequestStatus="accepted"
                     />
                   ))}

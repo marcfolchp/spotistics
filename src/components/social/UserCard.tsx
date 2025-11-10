@@ -9,6 +9,8 @@ interface UserCardProps {
   onSendRequest?: (userId: string) => void;
   onAcceptRequest?: (requestId: string) => void;
   onRejectRequest?: (requestId: string) => void;
+  onRetractRequest?: (requestId: string) => void;
+  onRemoveFriend?: (userId: string) => void;
   friendRequestStatus?: 'none' | 'pending' | 'accepted' | 'received';
   friendRequestId?: string;
   isLoading?: boolean;
@@ -20,6 +22,8 @@ export function UserCard({
   onSendRequest,
   onAcceptRequest,
   onRejectRequest,
+  onRetractRequest,
+  onRemoveFriend,
   friendRequestStatus = 'none',
   friendRequestId,
   isLoading = false,
@@ -51,6 +55,26 @@ export function UserCard({
     setIsRequesting(true);
     try {
       await onRejectRequest(friendRequestId);
+    } finally {
+      setIsRequesting(false);
+    }
+  };
+
+  const handleRetract = async () => {
+    if (!onRetractRequest || !friendRequestId || isRequesting) return;
+    setIsRequesting(true);
+    try {
+      await onRetractRequest(friendRequestId);
+    } finally {
+      setIsRequesting(false);
+    }
+  };
+
+  const handleRemoveFriend = async () => {
+    if (!onRemoveFriend || isRequesting) return;
+    setIsRequesting(true);
+    try {
+      await onRemoveFriend(user.user_id);
     } finally {
       setIsRequesting(false);
     }
@@ -93,18 +117,20 @@ export function UserCard({
           )}
           {friendRequestStatus === 'pending' && (
             <button
-              disabled
-              className="rounded-full border border-[#1DB954] bg-[#1DB954]/20 px-4 py-2 text-xs font-semibold text-[#1DB954] sm:px-5 sm:py-2.5 sm:text-sm"
+              onClick={handleRetract}
+              disabled={isRequesting || isLoading}
+              className="rounded-full border border-[#2A2A2A] bg-transparent px-4 py-2 text-xs font-semibold text-[#B3B3B3] transition-all hover:border-red-500 hover:text-red-500 active:scale-95 disabled:opacity-50 sm:px-5 sm:py-2.5 sm:text-sm"
             >
-              Request Sent
+              {isRequesting ? 'Retracting...' : 'Retract'}
             </button>
           )}
           {friendRequestStatus === 'accepted' && (
             <button
-              disabled
-              className="rounded-full border border-[#1DB954] bg-transparent px-4 py-2 text-xs font-semibold text-[#1DB954] sm:px-5 sm:py-2.5 sm:text-sm"
+              onClick={handleRemoveFriend}
+              disabled={isRequesting || isLoading}
+              className="rounded-full border border-[#2A2A2A] bg-transparent px-4 py-2 text-xs font-semibold text-[#B3B3B3] transition-all hover:border-red-500 hover:text-red-500 active:scale-95 disabled:opacity-50 sm:px-5 sm:py-2.5 sm:text-sm"
             >
-              Friends
+              {isRequesting ? 'Removing...' : 'Remove Friend'}
             </button>
           )}
           {friendRequestStatus === 'received' && (

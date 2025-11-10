@@ -303,6 +303,22 @@ export async function areFriends(userId1: string, userId2: string): Promise<bool
 }
 
 /**
+ * Cancel/retract a sent friend request
+ */
+export async function cancelFriendRequest(requestId: string): Promise<void> {
+  const supabase = createSupabaseServerClient();
+  const { error } = await supabase
+    .from('friend_requests')
+    .delete()
+    .eq('id', requestId);
+
+  if (error) {
+    console.error('Error canceling friend request:', error);
+    throw error;
+  }
+}
+
+/**
  * Remove a friend
  */
 export async function removeFriend(userId: string, friendId: string): Promise<void> {
