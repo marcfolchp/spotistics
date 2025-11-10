@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { useRouter } from 'next/navigation';
 import type { User } from '@/lib/supabase/types';
 
 interface UserCardProps {
@@ -28,7 +29,16 @@ export function UserCard({
   friendRequestId,
   isLoading = false,
 }: UserCardProps) {
+  const router = useRouter();
   const [isRequesting, setIsRequesting] = useState(false);
+
+  const handleCardClick = (e: React.MouseEvent) => {
+    // Don't navigate if clicking on buttons
+    if ((e.target as HTMLElement).closest('button')) {
+      return;
+    }
+    router.push(`/social/profile/${user.user_id}`);
+  };
 
   const handleSendRequest = async () => {
     if (!onSendRequest || isRequesting) return;
@@ -85,7 +95,10 @@ export function UserCard({
   }
 
   return (
-    <div className="rounded-lg bg-[#181818] p-4 transition-colors hover:bg-[#282828] sm:p-6">
+    <div
+      onClick={handleCardClick}
+      className="cursor-pointer rounded-lg bg-[#181818] p-4 transition-colors hover:bg-[#282828] sm:p-6"
+    >
       <div className="flex items-center gap-4">
         {user.profile_image_url ? (
           <img

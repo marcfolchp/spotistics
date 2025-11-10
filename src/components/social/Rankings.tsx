@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import { formatDurationMinutes } from '@/lib/utils/date';
 import type { FriendRanking } from '@/app/api/social/rankings/route';
 import { TimeRangeSelector } from '@/components/analytics/TimeRangeSelector';
@@ -222,12 +223,21 @@ function RankingItem({
   isCurrentUser: boolean;
   rankingValue: string;
 }) {
+  const router = useRouter();
+
   if (isCurrentUser) {
     return null; // Already shown above
   }
 
+  const handleClick = () => {
+    router.push(`/social/profile/${ranking.userId}`);
+  };
+
   return (
-    <div className="flex items-center gap-3 rounded-md bg-[#2A2A2A] p-3 transition-colors hover:bg-[#333333]">
+    <div
+      onClick={handleClick}
+      className="cursor-pointer flex items-center gap-3 rounded-md bg-[#2A2A2A] p-3 transition-colors hover:bg-[#333333]"
+    >
       <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full bg-[#2A2A2A] text-sm font-semibold text-[#B3B3B3] sm:h-10 sm:w-10 sm:text-base">
         {ranking.rank}
       </div>
