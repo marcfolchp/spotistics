@@ -80,16 +80,6 @@ export function UserCard({
           <h3 className="truncate text-base font-bold text-white sm:text-lg">
             {user.display_name || 'Unknown User'}
           </h3>
-          {user.spotify_profile_url && (
-            <a
-              href={user.spotify_profile_url}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="mt-1 text-xs text-[#B3B3B3] hover:text-[#1DB954] sm:text-sm"
-            >
-              View on Spotify →
-            </a>
-          )}
         </div>
         <div className="flex-shrink-0">
           {friendRequestStatus === 'none' && (

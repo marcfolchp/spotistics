@@ -1,6 +1,8 @@
 'use client';
 
 import { ProtectedRoute } from '@/components/auth/ProtectedRoute';
+import { useSession } from '@/contexts/SessionContext';
+import { MobileNav } from '@/components/navigation/MobileNav';
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { TimePatternChart } from '@/components/charts/TimePatternChart';
@@ -20,6 +22,7 @@ export default function AnalyticsPage() {
 
 function AnalyticsContent() {
   const router = useRouter();
+  const { logout } = useSession();
   const [timeRange, setTimeRange] = useState<TimeRange>('week'); // Default to 'week'
   const [timePatterns, setTimePatterns] = useState<TimePattern[]>([]);
   const [dayPatterns, setDayPatterns] = useState<DayPattern[]>([]);
@@ -102,6 +105,31 @@ function AnalyticsContent() {
                   <h1 className="text-lg font-bold text-white sm:text-xl">Spotistics</h1>
                 </div>
               </div>
+              <div className="flex items-center gap-2">
+                {/* Mobile Menu */}
+                <MobileNav currentPage="analytics" />
+                {/* Desktop Buttons */}
+                <div className="hidden items-center gap-2 sm:flex">
+                  <button
+                    onClick={() => router.push('/dashboard')}
+                    className="rounded-full border border-[#2A2A2A] bg-transparent px-4 py-2 text-xs font-semibold text-white transition-all hover:border-white hover:bg-[#2A2A2A] active:scale-95 sm:px-4 sm:py-2 sm:text-sm"
+                  >
+                    Dashboard
+                  </button>
+                  <button
+                    onClick={() => router.push('/social')}
+                    className="rounded-full border border-[#2A2A2A] bg-transparent px-4 py-2 text-xs font-semibold text-white transition-all hover:border-white hover:bg-[#2A2A2A] active:scale-95 sm:px-4 sm:py-2 sm:text-sm"
+                  >
+                    Social
+                  </button>
+                  <button
+                    onClick={logout}
+                    className="rounded-full px-3 py-2 text-xs font-medium text-[#B3B3B3] transition-colors hover:text-white active:scale-95 sm:px-3 sm:text-xs lg:px-4 lg:text-sm"
+                  >
+                    Logout
+                  </button>
+                </div>
+              </div>
             </div>
           </div>
         </nav>
@@ -156,6 +184,31 @@ function AnalyticsContent() {
                   <h1 className="text-lg font-bold text-white sm:text-xl">Spotistics</h1>
                 </div>
               </div>
+              <div className="flex items-center gap-2">
+                {/* Mobile Menu */}
+                <MobileNav currentPage="analytics" />
+                {/* Desktop Buttons */}
+                <div className="hidden items-center gap-2 sm:flex">
+                  <button
+                    onClick={() => router.push('/dashboard')}
+                    className="rounded-full border border-[#2A2A2A] bg-transparent px-4 py-2 text-xs font-semibold text-white transition-all hover:border-white hover:bg-[#2A2A2A] active:scale-95 sm:px-4 sm:py-2 sm:text-sm"
+                  >
+                    Dashboard
+                  </button>
+                  <button
+                    onClick={() => router.push('/social')}
+                    className="rounded-full border border-[#2A2A2A] bg-transparent px-4 py-2 text-xs font-semibold text-white transition-all hover:border-white hover:bg-[#2A2A2A] active:scale-95 sm:px-4 sm:py-2 sm:text-sm"
+                  >
+                    Social
+                  </button>
+                  <button
+                    onClick={logout}
+                    className="rounded-full px-3 py-2 text-xs font-medium text-[#B3B3B3] transition-colors hover:text-white active:scale-95 sm:px-3 sm:text-xs lg:px-4 lg:text-sm"
+                  >
+                    Logout
+                  </button>
+                </div>
+              </div>
             </div>
           </div>
         </nav>
@@ -194,6 +247,31 @@ function AnalyticsContent() {
                     </svg>
                   </div>
                   <h1 className="text-lg font-bold text-white sm:text-xl">Spotistics</h1>
+                </div>
+              </div>
+              <div className="flex items-center gap-2">
+                {/* Mobile Menu */}
+                <MobileNav currentPage="analytics" />
+                {/* Desktop Buttons */}
+                <div className="hidden items-center gap-2 sm:flex">
+                  <button
+                    onClick={() => router.push('/dashboard')}
+                    className="rounded-full border border-[#2A2A2A] bg-transparent px-4 py-2 text-xs font-semibold text-white transition-all hover:border-white hover:bg-[#2A2A2A] active:scale-95 sm:px-4 sm:py-2 sm:text-sm"
+                  >
+                    Dashboard
+                  </button>
+                  <button
+                    onClick={() => router.push('/social')}
+                    className="rounded-full border border-[#2A2A2A] bg-transparent px-4 py-2 text-xs font-semibold text-white transition-all hover:border-white hover:bg-[#2A2A2A] active:scale-95 sm:px-4 sm:py-2 sm:text-sm"
+                  >
+                    Social
+                  </button>
+                  <button
+                    onClick={logout}
+                    className="rounded-full px-3 py-2 text-xs font-medium text-[#B3B3B3] transition-colors hover:text-white active:scale-95 sm:px-3 sm:text-xs lg:px-4 lg:text-sm"
+                  >
+                    Logout
+                  </button>
                 </div>
               </div>
             </div>
@@ -247,18 +325,29 @@ function AnalyticsContent() {
               </div>
             </div>
             <div className="flex items-center gap-2">
-              <button
-                onClick={() => router.push('/dashboard')}
-                className="rounded-full border border-[#2A2A2A] bg-transparent px-3 py-1.5 text-xs font-semibold text-white transition-all hover:border-white hover:bg-[#2A2A2A] active:scale-95 sm:px-4 sm:py-2 sm:text-sm"
-              >
-                Dashboard
-              </button>
-              <button
-                onClick={() => router.push('/social')}
-                className="rounded-full border border-[#2A2A2A] bg-transparent px-3 py-1.5 text-xs font-semibold text-white transition-all hover:border-white hover:bg-[#2A2A2A] active:scale-95 sm:px-4 sm:py-2 sm:text-sm"
-              >
-                Social
-              </button>
+              {/* Mobile Menu */}
+              <MobileNav currentPage="analytics" />
+              {/* Desktop Buttons */}
+              <div className="hidden items-center gap-2 sm:flex">
+                <button
+                  onClick={() => router.push('/dashboard')}
+                  className="rounded-full border border-[#2A2A2A] bg-transparent px-4 py-2 text-xs font-semibold text-white transition-all hover:border-white hover:bg-[#2A2A2A] active:scale-95 sm:px-4 sm:py-2 sm:text-sm"
+                >
+                  Dashboard
+                </button>
+                <button
+                  onClick={() => router.push('/social')}
+                  className="rounded-full border border-[#2A2A2A] bg-transparent px-4 py-2 text-xs font-semibold text-white transition-all hover:border-white hover:bg-[#2A2A2A] active:scale-95 sm:px-4 sm:py-2 sm:text-sm"
+                >
+                  Social
+                </button>
+                <button
+                  onClick={logout}
+                  className="rounded-full px-3 py-2 text-xs font-medium text-[#B3B3B3] transition-colors hover:text-white active:scale-95 sm:px-3 sm:text-xs lg:px-4 lg:text-sm"
+                >
+                  Logout
+                </button>
+              </div>
             </div>
           </div>
         </div>

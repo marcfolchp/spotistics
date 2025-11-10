@@ -6,6 +6,7 @@ import { RecentTracks } from '@/components/dashboard/RecentTracks';
 import { TopArtists } from '@/components/dashboard/TopArtists';
 import { TopTracks } from '@/components/dashboard/TopTracks';
 import { TopGenres } from '@/components/dashboard/TopGenres';
+import { MobileNav } from '@/components/navigation/MobileNav';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState, useRef } from 'react';
 import type { SpotifyUser } from '@/types';
@@ -94,30 +95,35 @@ function DashboardContent() {
                   </span>
                 </div>
               )}
-              <button
-                onClick={() => router.push('/upload')}
-                className="rounded-full bg-[#1DB954] px-3 py-1.5 text-[10px] font-semibold text-white transition-all hover:bg-[#1ed760] active:scale-95 sm:px-4 sm:py-2 sm:text-xs lg:px-5 lg:text-sm"
-              >
-                Upload
-              </button>
-                      <button
-                        onClick={() => router.push('/analytics')}
-                        className="rounded-full border border-[#2A2A2A] bg-transparent px-3 py-1.5 text-[10px] font-semibold text-white transition-all hover:border-white hover:bg-[#2A2A2A] active:scale-95 sm:px-4 sm:py-2 sm:text-xs lg:px-5 lg:text-sm"
-                      >
-                        Analytics
-                      </button>
-                      <button
-                        onClick={() => router.push('/social')}
-                        className="rounded-full border border-[#2A2A2A] bg-transparent px-3 py-1.5 text-[10px] font-semibold text-white transition-all hover:border-white hover:bg-[#2A2A2A] active:scale-95 sm:px-4 sm:py-2 sm:text-xs lg:px-5 lg:text-sm"
-                      >
-                        Social
-                      </button>
-              <button
-                onClick={handleLogout}
-                className="rounded-full px-2 py-1.5 text-[10px] font-medium text-[#B3B3B3] transition-colors hover:text-white active:scale-95 sm:px-3 sm:text-xs lg:px-4 lg:text-sm"
-              >
-                Logout
-              </button>
+              {/* Mobile Menu */}
+              <MobileNav currentPage="dashboard" />
+              {/* Desktop Buttons */}
+              <div className="hidden items-center gap-1.5 sm:flex sm:gap-3">
+                <button
+                  onClick={() => router.push('/upload')}
+                  className="rounded-full bg-[#1DB954] px-4 py-2 text-xs font-semibold text-white transition-all hover:bg-[#1ed760] active:scale-95 sm:px-4 sm:py-2 sm:text-xs lg:px-5 lg:text-sm"
+                >
+                  Upload
+                </button>
+                <button
+                  onClick={() => router.push('/analytics')}
+                  className="rounded-full border border-[#2A2A2A] bg-transparent px-4 py-2 text-xs font-semibold text-white transition-all hover:border-white hover:bg-[#2A2A2A] active:scale-95 sm:px-4 sm:py-2 sm:text-xs lg:px-5 lg:text-sm"
+                >
+                  Analytics
+                </button>
+                <button
+                  onClick={() => router.push('/social')}
+                  className="rounded-full border border-[#2A2A2A] bg-transparent px-4 py-2 text-xs font-semibold text-white transition-all hover:border-white hover:bg-[#2A2A2A] active:scale-95 sm:px-4 sm:py-2 sm:text-xs lg:px-5 lg:text-sm"
+                >
+                  Social
+                </button>
+                <button
+                  onClick={handleLogout}
+                  className="rounded-full px-3 py-2 text-xs font-medium text-[#B3B3B3] transition-colors hover:text-white active:scale-95 sm:px-3 sm:text-xs lg:px-4 lg:text-sm"
+                >
+                  Logout
+                </button>
+              </div>
             </div>
           </div>
         </div>

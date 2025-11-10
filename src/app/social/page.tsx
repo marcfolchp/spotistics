@@ -2,6 +2,7 @@
 
 import { ProtectedRoute } from '@/components/auth/ProtectedRoute';
 import { useSession } from '@/contexts/SessionContext';
+import { MobileNav } from '@/components/navigation/MobileNav';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState, useRef } from 'react';
 import { Rankings } from '@/components/social/Rankings';
@@ -65,24 +66,29 @@ function SocialContent() {
                 <h1 className="text-base font-bold text-white sm:text-xl">Spotistics</h1>
               </div>
               <div className="flex items-center gap-1.5 sm:gap-3">
-                <button
-                  onClick={() => router.push('/dashboard')}
-                  className="rounded-full border border-[#2A2A2A] bg-transparent px-3 py-1.5 text-[10px] font-semibold text-white transition-all hover:border-white hover:bg-[#2A2A2A] active:scale-95 sm:px-4 sm:py-2 sm:text-xs lg:px-5 lg:text-sm"
-                >
-                  Dashboard
-                </button>
-                <button
-                  onClick={() => router.push('/analytics')}
-                  className="rounded-full border border-[#2A2A2A] bg-transparent px-3 py-1.5 text-[10px] font-semibold text-white transition-all hover:border-white hover:bg-[#2A2A2A] active:scale-95 sm:px-4 sm:py-2 sm:text-xs lg:px-5 lg:text-sm"
-                >
-                  Analytics
-                </button>
-                <button
-                  onClick={logout}
-                  className="rounded-full px-2 py-1.5 text-[10px] font-medium text-[#B3B3B3] transition-colors hover:text-white active:scale-95 sm:px-3 sm:text-xs lg:px-4 lg:text-sm"
-                >
-                  Logout
-                </button>
+                {/* Mobile Menu */}
+                <MobileNav currentPage="social" />
+                {/* Desktop Buttons */}
+                <div className="hidden items-center gap-1.5 sm:flex sm:gap-3">
+                  <button
+                    onClick={() => router.push('/dashboard')}
+                    className="rounded-full border border-[#2A2A2A] bg-transparent px-4 py-2 text-xs font-semibold text-white transition-all hover:border-white hover:bg-[#2A2A2A] active:scale-95 sm:px-4 sm:py-2 sm:text-xs lg:px-5 lg:text-sm"
+                  >
+                    Dashboard
+                  </button>
+                  <button
+                    onClick={() => router.push('/analytics')}
+                    className="rounded-full border border-[#2A2A2A] bg-transparent px-4 py-2 text-xs font-semibold text-white transition-all hover:border-white hover:bg-[#2A2A2A] active:scale-95 sm:px-4 sm:py-2 sm:text-xs lg:px-5 lg:text-sm"
+                  >
+                    Analytics
+                  </button>
+                  <button
+                    onClick={logout}
+                    className="rounded-full px-3 py-2 text-xs font-medium text-[#B3B3B3] transition-colors hover:text-white active:scale-95 sm:px-3 sm:text-xs lg:px-4 lg:text-sm"
+                  >
+                    Logout
+                  </button>
+                </div>
               </div>
             </div>
           </div>
@@ -129,24 +135,29 @@ function SocialContent() {
               <h1 className="text-base font-bold text-white sm:text-xl">Spotistics</h1>
             </div>
             <div className="flex items-center gap-1.5 sm:gap-3">
-              <button
-                onClick={() => router.push('/dashboard')}
-                className="rounded-full border border-[#2A2A2A] bg-transparent px-3 py-1.5 text-[10px] font-semibold text-white transition-all hover:border-white hover:bg-[#2A2A2A] active:scale-95 sm:px-4 sm:py-2 sm:text-xs lg:px-5 lg:text-sm"
-              >
-                Dashboard
-              </button>
-              <button
-                onClick={() => router.push('/analytics')}
-                className="rounded-full border border-[#2A2A2A] bg-transparent px-3 py-1.5 text-[10px] font-semibold text-white transition-all hover:border-white hover:bg-[#2A2A2A] active:scale-95 sm:px-4 sm:py-2 sm:text-xs lg:px-5 lg:text-sm"
-              >
-                Analytics
-              </button>
-              <button
-                onClick={logout}
-                className="rounded-full px-2 py-1.5 text-[10px] font-medium text-[#B3B3B3] transition-colors hover:text-white active:scale-95 sm:px-3 sm:text-xs lg:px-4 lg:text-sm"
-              >
-                Logout
-              </button>
+              {/* Mobile Menu */}
+              <MobileNav currentPage="social" />
+              {/* Desktop Buttons */}
+              <div className="hidden items-center gap-1.5 sm:flex sm:gap-3">
+                <button
+                  onClick={() => router.push('/dashboard')}
+                  className="rounded-full border border-[#2A2A2A] bg-transparent px-4 py-2 text-xs font-semibold text-white transition-all hover:border-white hover:bg-[#2A2A2A] active:scale-95 sm:px-4 sm:py-2 sm:text-xs lg:px-5 lg:text-sm"
+                >
+                  Dashboard
+                </button>
+                <button
+                  onClick={() => router.push('/analytics')}
+                  className="rounded-full border border-[#2A2A2A] bg-transparent px-4 py-2 text-xs font-semibold text-white transition-all hover:border-white hover:bg-[#2A2A2A] active:scale-95 sm:px-4 sm:py-2 sm:text-xs lg:px-5 lg:text-sm"
+                >
+                  Analytics
+                </button>
+                <button
+                  onClick={logout}
+                  className="rounded-full px-3 py-2 text-xs font-medium text-[#B3B3B3] transition-colors hover:text-white active:scale-95 sm:px-3 sm:text-xs lg:px-4 lg:text-sm"
+                >
+                  Logout
+                </button>
+              </div>
             </div>
           </div>
         </div>

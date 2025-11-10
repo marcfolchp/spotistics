@@ -150,10 +150,10 @@ export function Rankings({ currentUserId }: RankingsProps) {
         <h3 className="text-base font-bold text-white sm:text-lg">Rankings</h3>
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
           <TimeRangeSelector value={timeRange} onChange={setTimeRange} />
-          <div className="flex gap-1 rounded-full bg-[#2A2A2A] p-1 sm:gap-1.5 sm:p-1.5">
+          <div className="flex flex-nowrap gap-1 rounded-full bg-[#2A2A2A] p-1 sm:gap-1.5 sm:p-1.5">
             <button
               onClick={() => setRankingType('listeningTime')}
-              className={`rounded-full px-3 py-1.5 text-xs font-semibold transition-all active:scale-95 sm:px-4 sm:py-2 sm:text-sm ${
+              className={`flex-shrink-0 rounded-full px-2.5 py-1.5 text-[10px] font-semibold transition-all active:scale-95 sm:px-4 sm:py-2 sm:text-sm ${
                 rankingType === 'listeningTime'
                   ? 'bg-white text-black'
                   : 'text-[#B3B3B3] hover:text-white'
@@ -163,7 +163,7 @@ export function Rankings({ currentUserId }: RankingsProps) {
             </button>
             <button
               onClick={() => setRankingType('tracks')}
-              className={`rounded-full px-3 py-1.5 text-xs font-semibold transition-all active:scale-95 sm:px-4 sm:py-2 sm:text-sm ${
+              className={`flex-shrink-0 rounded-full px-2.5 py-1.5 text-[10px] font-semibold transition-all active:scale-95 sm:px-4 sm:py-2 sm:text-sm ${
                 rankingType === 'tracks'
                   ? 'bg-white text-black'
                   : 'text-[#B3B3B3] hover:text-white'
@@ -173,7 +173,7 @@ export function Rankings({ currentUserId }: RankingsProps) {
             </button>
             <button
               onClick={() => setRankingType('artists')}
-              className={`rounded-full px-3 py-1.5 text-xs font-semibold transition-all active:scale-95 sm:px-4 sm:py-2 sm:text-sm ${
+              className={`flex-shrink-0 rounded-full px-2.5 py-1.5 text-[10px] font-semibold transition-all active:scale-95 sm:px-4 sm:py-2 sm:text-sm ${
                 rankingType === 'artists'
                   ? 'bg-white text-black'
                   : 'text-[#B3B3B3] hover:text-white'
