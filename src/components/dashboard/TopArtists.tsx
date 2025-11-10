@@ -149,10 +149,10 @@ function TimeRangeSelector({
   onChange: (value: TimeRange) => void;
 }) {
   return (
-    <div className="flex w-fit gap-1 rounded-full bg-[#2A2A2A] p-1 sm:gap-1.5 sm:p-1.5">
+    <div className="flex w-fit gap-1 rounded-full bg-[#2A2A2A] p-1 sm:gap-1.5 sm:p-1.5 md:gap-1.5 md:p-1.5 lg:gap-2 lg:p-2">
       <button
         onClick={() => onChange('short_term')}
-        className={`rounded-full px-3 py-1.5 text-[11px] font-semibold leading-tight transition-all active:scale-95 sm:px-3 sm:py-1.5 sm:text-[12px] md:px-4 md:py-2 md:text-xs ${
+        className={`rounded-full px-3 py-1.5 text-[11px] font-semibold leading-tight transition-all active:scale-95 sm:px-3 sm:py-1.5 sm:text-[12px] md:px-3.5 md:py-1.5 md:text-xs lg:px-4 lg:py-2 lg:text-sm ${
           value === 'short_term'
             ? 'bg-white text-black'
             : 'text-[#B3B3B3] hover:text-white'
@@ -162,7 +162,7 @@ function TimeRangeSelector({
       </button>
       <button
         onClick={() => onChange('medium_term')}
-        className={`rounded-full px-3 py-1.5 text-[11px] font-semibold leading-tight transition-all active:scale-95 sm:px-3 sm:py-1.5 sm:text-[12px] md:px-4 md:py-2 md:text-xs ${
+        className={`rounded-full px-3 py-1.5 text-[11px] font-semibold leading-tight transition-all active:scale-95 sm:px-3 sm:py-1.5 sm:text-[12px] md:px-3.5 md:py-1.5 md:text-xs lg:px-4 lg:py-2 lg:text-sm ${
           value === 'medium_term'
             ? 'bg-white text-black'
             : 'text-[#B3B3B3] hover:text-white'
@@ -172,7 +172,7 @@ function TimeRangeSelector({
       </button>
       <button
         onClick={() => onChange('long_term')}
-        className={`rounded-full px-2.5 py-1.5 text-[11px] font-semibold leading-tight transition-all active:scale-95 sm:px-3 sm:py-1.5 sm:text-[12px] md:px-3 md:py-2 md:text-xs ${
+        className={`rounded-full px-2.5 py-1.5 text-[11px] font-semibold leading-tight transition-all active:scale-95 sm:px-3 sm:py-1.5 sm:text-[12px] md:px-3.5 md:py-1.5 md:text-xs lg:px-4 lg:py-2 lg:text-sm ${
           value === 'long_term'
             ? 'bg-white text-black'
             : 'text-[#B3B3B3] hover:text-white'
