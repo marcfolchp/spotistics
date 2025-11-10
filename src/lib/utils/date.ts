@@ -93,10 +93,10 @@ export function formatRelativeTime(date: Date | string): string {
 }
 
 /**
- * Format exact timestamp (e.g., "Nov 9, 2024 at 2:30 PM")
+ * Format exact timestamp (e.g., "09-11-2025 11:50")
  */
 export function formatExactTimestamp(date: Date | string): string {
   const dateObj = typeof date === 'string' ? parseISO(date) : date;
-  return format(dateObj, 'MMM d, yyyy \'at\' h:mm a');
+  return format(dateObj, 'dd-MM-yyyy HH:mm');
 }
 
