@@ -25,11 +25,12 @@ export function getAuthorizationUrl(redirectUri: string, clientId: string, promp
 
   let authUrl = spotifyApi.createAuthorizeURL(scopes, 'state');
   
-  // Add prompt=select_account to force account selection
+  // Add show_dialog=true to force the authorization dialog
   // This allows users to switch accounts even if they're already logged in to Spotify
+  // Spotify doesn't support prompt=select_account, but show_dialog=true forces the login screen
   if (promptSelectAccount) {
     const url = new URL(authUrl);
-    url.searchParams.set('prompt', 'select_account');
+    url.searchParams.set('show_dialog', 'true');
     authUrl = url.toString();
   }
 
