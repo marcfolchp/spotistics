@@ -100,12 +100,18 @@ function DashboardContent() {
               >
                 Upload
               </button>
-              <button
-                onClick={() => router.push('/analytics')}
-                className="rounded-full border border-[#2A2A2A] bg-transparent px-3 py-1.5 text-[10px] font-semibold text-white transition-all hover:border-white hover:bg-[#2A2A2A] active:scale-95 sm:px-4 sm:py-2 sm:text-xs lg:px-5 lg:text-sm"
-              >
-                Analytics
-              </button>
+                      <button
+                        onClick={() => router.push('/analytics')}
+                        className="rounded-full border border-[#2A2A2A] bg-transparent px-3 py-1.5 text-[10px] font-semibold text-white transition-all hover:border-white hover:bg-[#2A2A2A] active:scale-95 sm:px-4 sm:py-2 sm:text-xs lg:px-5 lg:text-sm"
+                      >
+                        Analytics
+                      </button>
+                      <button
+                        onClick={() => router.push('/social')}
+                        className="rounded-full border border-[#2A2A2A] bg-transparent px-3 py-1.5 text-[10px] font-semibold text-white transition-all hover:border-white hover:bg-[#2A2A2A] active:scale-95 sm:px-4 sm:py-2 sm:text-xs lg:px-5 lg:text-sm"
+                      >
+                        Social
+                      </button>
               <button
                 onClick={handleLogout}
                 className="rounded-full px-2 py-1.5 text-[10px] font-medium text-[#B3B3B3] transition-colors hover:text-white active:scale-95 sm:px-3 sm:text-xs lg:px-4 lg:text-sm"

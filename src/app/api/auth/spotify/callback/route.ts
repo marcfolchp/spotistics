@@ -96,8 +96,10 @@ export async function GET(request: NextRequest) {
       });
 
       // Store refresh token in Supabase for background sync
+      // Also create/update user profile for social features
       try {
         const { storeUserRefreshToken } = await import('@/lib/supabase/tokens');
+        const { upsertUserProfile } = await import('@/lib/supabase/social');
         const profileResponse = await fetch('https://api.spotify.com/v1/me', {
           headers: {
             Authorization: `Bearer ${accessToken}`,
@@ -108,10 +110,23 @@ export async function GET(request: NextRequest) {
           const profile = await profileResponse.json();
           await storeUserRefreshToken(profile.id, refreshToken);
           console.log(`Stored refresh token for user ${profile.id}`);
+          
+          // Create/update user profile for social features
+          const profileImageUrl = profile.images && profile.images.length > 0 
+            ? profile.images[0].url 
+            : null;
+          const spotifyProfileUrl = profile.external_urls?.spotify || null;
+          await upsertUserProfile(
+            profile.id,
+            profile.display_name || null,
+            profileImageUrl,
+            spotifyProfileUrl
+          );
+          console.log(`Created/updated user profile for user ${profile.id}`);
         }
       } catch (error) {
-        console.error('Error storing refresh token in Supabase:', error);
-        // Don't fail the login if storing token fails
+        console.error('Error storing refresh token or user profile in Supabase:', error);
+        // Don't fail the login if storing token/profile fails
       }
     }
 

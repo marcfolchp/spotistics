@@ -246,6 +246,20 @@ function AnalyticsContent() {
                 <h1 className="text-lg font-bold text-white sm:text-xl">Spotistics</h1>
               </div>
             </div>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => router.push('/dashboard')}
+                className="rounded-full border border-[#2A2A2A] bg-transparent px-3 py-1.5 text-xs font-semibold text-white transition-all hover:border-white hover:bg-[#2A2A2A] active:scale-95 sm:px-4 sm:py-2 sm:text-sm"
+              >
+                Dashboard
+              </button>
+              <button
+                onClick={() => router.push('/social')}
+                className="rounded-full border border-[#2A2A2A] bg-transparent px-3 py-1.5 text-xs font-semibold text-white transition-all hover:border-white hover:bg-[#2A2A2A] active:scale-95 sm:px-4 sm:py-2 sm:text-sm"
+              >
+                Social
+              </button>
+            </div>
           </div>
         </div>
       </nav>

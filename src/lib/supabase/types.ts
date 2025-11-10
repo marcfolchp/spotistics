@@ -28,3 +28,30 @@ export interface UserDataSummary {
   updated_at: string;
 }
 
+export interface User {
+  id: string;
+  user_id: string;
+  display_name: string | null;
+  profile_image_url: string | null;
+  spotify_profile_url: string | null;
+  is_public: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface FriendRequest {
+  id: string;
+  from_user_id: string;
+  to_user_id: string;
+  status: 'pending' | 'accepted' | 'rejected';
+  created_at: string;
+  updated_at: string;
+}
+
+export interface Friend {
+  id: string;
+  user_id: string;
+  friend_id: string;
+  created_at: string;
+}
+
