@@ -46,6 +46,7 @@ function UserProfileContent() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isRequesting, setIsRequesting] = useState(false);
+  const [showRemoveConfirm, setShowRemoveConfirm] = useState(false);
 
   useEffect(() => {
     async function fetchProfile() {
@@ -174,15 +175,14 @@ function UserProfileContent() {
     }
   };
 
-  const handleRemoveFriend = async () => {
+  const handleRemoveFriendClick = () => {
+    setShowRemoveConfirm(true);
+  };
+
+  const handleRemoveFriendConfirm = async () => {
     if (!userId || isRequesting) return;
     
-    // Show confirmation dialog
-    const confirmed = window.confirm('Are you sure you want to remove this friend?');
-    if (!confirmed) {
-      return;
-    }
-    
+    setShowRemoveConfirm(false);
     setIsRequesting(true);
     try {
       const response = await fetch('/api/social/friends', {
@@ -199,6 +199,10 @@ function UserProfileContent() {
     } finally {
       setIsRequesting(false);
     }
+  };
+
+  const handleRemoveFriendCancel = () => {
+    setShowRemoveConfirm(false);
   };
 
   if (isLoading) {
@@ -426,7 +430,7 @@ function UserProfileContent() {
                 )}
                 {friendStatus === 'accepted' && (
                   <button
-                    onClick={handleRemoveFriend}
+                    onClick={handleRemoveFriendClick}
                     disabled={isRequesting}
                     className="rounded-full border border-[#2A2A2A] bg-transparent px-3 py-1.5 text-xs font-semibold text-[#B3B3B3] transition-all hover:border-red-500 hover:text-red-500 active:scale-95 disabled:opacity-50 sm:px-4 sm:py-2 sm:text-sm"
                   >
@@ -545,6 +549,36 @@ function UserProfileContent() {
           )}
         </div>
       </main>
+
+      {/* Remove Friend Confirmation Modal */}
+      {showRemoveConfirm && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
+          <div className="w-full max-w-md rounded-lg bg-[#181818] p-6 shadow-xl">
+            <h3 className="mb-4 text-lg font-bold text-white sm:text-xl">
+              Remove Friend
+            </h3>
+            <p className="mb-6 text-sm text-[#B3B3B3] sm:text-base">
+              Are you sure you want to remove this friend?
+            </p>
+            <div className="flex gap-3 sm:justify-end">
+              <button
+                onClick={handleRemoveFriendCancel}
+                disabled={isRequesting}
+                className="flex-1 rounded-full border border-[#2A2A2A] bg-transparent px-4 py-2 text-sm font-semibold text-[#B3B3B3] transition-all hover:border-white hover:text-white active:scale-95 disabled:opacity-50 sm:flex-none"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleRemoveFriendConfirm}
+                disabled={isRequesting}
+                className="flex-1 rounded-full bg-red-600 px-4 py-2 text-sm font-semibold text-white transition-all hover:bg-red-700 active:scale-95 disabled:opacity-50 sm:flex-none"
+              >
+                {isRequesting ? 'Removing...' : 'Remove'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
