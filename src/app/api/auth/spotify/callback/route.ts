@@ -75,7 +75,7 @@ export async function GET(request: NextRequest) {
     
     // Create response with redirect using the actual request origin
     // This ensures production URLs work correctly
-    const response = NextResponse.redirect(new URL('/dashboard', origin));
+    const response = NextResponse.redirect(new URL('/home', origin));
     
     // Set cookies on the response directly
     response.cookies.set('spotify_access_token', accessToken, {
@@ -130,8 +130,8 @@ export async function GET(request: NextRequest) {
       }
     }
 
-    console.log('Cookies set on response, redirecting to dashboard');
-    console.log('Redirect URL:', new URL('/dashboard', origin).toString());
+    console.log('Cookies set on response, redirecting to home');
+    console.log('Redirect URL:', new URL('/home', origin).toString());
 
     return response;
   } catch (error) {

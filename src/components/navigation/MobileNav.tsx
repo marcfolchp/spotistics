@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import { useSession } from '@/contexts/SessionContext';
 
 interface MobileNavProps {
-  currentPage?: 'dashboard' | 'analytics' | 'social' | 'upload';
+  currentPage?: 'home' | 'dashboard' | 'analytics' | 'social' | 'upload';
 }
 
 export function MobileNav({ currentPage }: MobileNavProps) {
@@ -79,6 +79,14 @@ export function MobileNav({ currentPage }: MobileNavProps) {
           {/* Menu */}
           <div className="absolute right-0 top-full z-50 mt-2 w-48 rounded-lg border border-[#2A2A2A] bg-[#181818] shadow-xl">
             <div className="py-2">
+              {currentPage !== 'home' && (
+                <button
+                  onClick={() => handleNavigation('/home')}
+                  className="w-full px-4 py-3 text-left text-sm font-medium text-white transition-colors hover:bg-[#2A2A2A] active:bg-[#333333]"
+                >
+                  Home
+                </button>
+              )}
               {currentPage !== 'dashboard' && (
                 <button
                   onClick={() => handleNavigation('/dashboard')}
