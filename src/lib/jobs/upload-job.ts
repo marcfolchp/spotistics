@@ -46,6 +46,12 @@ export function updateUploadJob(
   if (job) {
     Object.assign(job, updates);
     jobs.set(jobId, job);
+    // Log updates for debugging
+    if (updates.progress !== undefined) {
+      console.log(`[Job Update] ${jobId}: progress=${updates.progress}%, status=${updates.status || job.status}, message=${updates.message || job.message}`);
+    }
+  } else {
+    console.warn(`[Job Update] Job ${jobId} not found when trying to update`);
   }
 }
 

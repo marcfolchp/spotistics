@@ -32,46 +32,68 @@ export async function storeListeningData(
     source: item.source,
   }));
 
-  // Insert data in batches (Supabase has a limit of 1000 rows per insert)
+  // Insert data in batches with optimized batch size
+  // Supabase supports up to 1000 rows per insert
+  // Use parallel inserts (up to 3 concurrent batches) for better throughput
   const batchSize = 1000;
   const totalBatches = Math.ceil(rows.length / batchSize);
+  const maxConcurrentBatches = 3; // Process up to 3 batches in parallel (safe for Supabase)
   console.log(`Inserting ${rows.length} rows in ${totalBatches} batches into listening_data table...`);
   
-  for (let i = 0; i < rows.length; i += batchSize) {
-    const batch = rows.slice(i, i + batchSize);
-    const batchNumber = Math.floor(i / batchSize) + 1;
-    
-    try {
-      const { error } = await supabase
-        .from('listening_data')
-        .insert(batch);
-
-      if (error) {
-        console.error(`Error inserting batch ${batchNumber}/${totalBatches}:`, error);
-        console.error(`Error code:`, error.code);
-        console.error(`Error hint:`, error.hint);
-        console.error(`Error details:`, JSON.stringify(error, null, 2));
-        console.error(`Batch size:`, batch.length);
-        console.error(`Batch sample (first row):`, JSON.stringify(batch[0], null, 2));
-        throw new Error(`Failed to store data: ${error.message || 'Unknown error'} (code: ${error.code || 'N/A'})`);
+  // Process batches with controlled concurrency
+  for (let i = 0; i < rows.length; i += batchSize * maxConcurrentBatches) {
+    const batchGroup = [];
+    for (let j = 0; j < maxConcurrentBatches && (i + j * batchSize) < rows.length; j++) {
+      const batchStart = i + j * batchSize;
+      const batch = rows.slice(batchStart, batchStart + batchSize);
+      if (batch.length > 0) {
+        batchGroup.push({
+          batch,
+          batchNumber: Math.floor(batchStart / batchSize) + 1,
+          batchStart,
+        });
       }
-      
-      console.log(`[Batch ${batchNumber}] Successfully inserted ${batch.length} rows`);
-      
-      // Update progress
+    }
+    
+    // Insert batches in parallel (up to maxConcurrentBatches at once)
+    const insertPromises = batchGroup.map(async ({ batch, batchNumber, batchStart }) => {
+      try {
+        const { error } = await supabase
+          .from('listening_data')
+          .insert(batch);
+
+        if (error) {
+          console.error(`Error inserting batch ${batchNumber}/${totalBatches}:`, error);
+          throw new Error(`Failed to store data: ${error.message || 'Unknown error'} (code: ${error.code || 'N/A'})`);
+        }
+        
+        return { batchNumber, batchStart, batchLength: batch.length };
+      } catch (batchError: any) {
+        console.error(`[Batch ${batchNumber}] Error:`, batchError);
+        throw batchError;
+      }
+    });
+    
+    // Wait for all batches in this group to complete
+    const results = await Promise.all(insertPromises);
+    
+    // Update progress after each group (more frequent updates for smoother progress bar)
+    for (const { batchNumber, batchStart, batchLength } of results) {
       const progress = Math.floor((batchNumber / totalBatches) * 100);
-      const message = `Storing data... ${batchNumber}/${totalBatches} batches (${Math.min(i + batch.length, rows.length)}/${rows.length} tracks)`;
+      const message = `Storing data... ${batchNumber}/${totalBatches} batches (${Math.min(batchStart + batchLength, rows.length)}/${rows.length} tracks)`;
       
       if (onProgress) {
         onProgress(progress, message);
+        // Log progress updates for debugging
+        if (batchNumber % 5 === 0 || batchNumber === totalBatches) {
+          console.log(`[Storage] Progress update: ${progress}% - ${message}`);
+        }
       }
       
-      if (batchNumber % 10 === 0 || batchNumber === totalBatches) {
-        console.log(`Inserted batch ${batchNumber}/${totalBatches} (${i + batch.length}/${rows.length} rows)`);
+      // Log every 5 batches or on last batch for better visibility
+      if (batchNumber % 5 === 0 || batchNumber === totalBatches) {
+        console.log(`Inserted batch ${batchNumber}/${totalBatches} (${Math.min(batchStart + batchLength, rows.length)}/${rows.length} rows)`);
       }
-    } catch (batchError: any) {
-      console.error(`[Batch ${batchNumber}] Error:`, batchError);
-      throw batchError;
     }
   }
   
@@ -129,13 +151,17 @@ export async function getListeningData(
  * Get all listening data for a user (for analytics)
  * Supabase has a default limit of 1000 rows, so we need to paginate
  */
-export async function getAllListeningData(userId: string): Promise<ProcessedListeningData[]> {
+export async function getAllListeningData(
+  userId: string,
+  onProgress?: (fetched: number, total?: number) => void
+): Promise<ProcessedListeningData[]> {
   const supabase = createSupabaseServerClient();
 
   const allData: ProcessedListeningData[] = [];
   const pageSize = 1000; // Supabase default limit
   let offset = 0;
   let hasMore = true;
+  let totalCount: number | null = null;
 
   console.log(`Fetching all listening data for user ${userId}...`);
 
@@ -150,6 +176,10 @@ export async function getAllListeningData(userId: string): Promise<ProcessedList
     if (error) {
       console.error('Error fetching listening data:', error);
       throw new Error(`Failed to fetch data: ${error.message}`);
+    }
+
+    if (totalCount === null && count !== null) {
+      totalCount = count;
     }
 
     if (!data || data.length === 0) {
@@ -170,6 +200,11 @@ export async function getAllListeningData(userId: string): Promise<ProcessedList
 
     allData.push(...processed);
     offset += pageSize;
+
+    // Update progress
+    if (onProgress) {
+      onProgress(allData.length, totalCount || undefined);
+    }
 
     // Check if we've fetched all data
     if (data.length < pageSize || (count !== null && offset >= count)) {
@@ -326,6 +361,29 @@ export async function deleteUserListeningData(userId: string): Promise<void> {
     console.error('Error deleting listening data:', error);
     throw new Error(`Failed to delete data: ${error.message}`);
   }
+}
+
+/**
+ * Delete listening data for a user up to (and including) a specific date
+ * This preserves data newer than the cutoff date
+ */
+export async function deleteUserListeningDataUpToDate(userId: string, maxDate: Date): Promise<void> {
+  const supabase = createSupabaseServerClient();
+
+  console.log(`Deleting listening data for user ${userId} up to ${maxDate.toISOString()}...`);
+
+  const { error, count } = await supabase
+    .from('listening_data')
+    .delete()
+    .eq('user_id', userId)
+    .lte('played_at', maxDate.toISOString());
+
+  if (error) {
+    console.error('Error deleting listening data by date:', error);
+    throw new Error(`Failed to delete data: ${error.message}`);
+  }
+
+  console.log(`Deleted ${count || 0} records up to ${maxDate.toISOString()}`);
 }
 
 /**

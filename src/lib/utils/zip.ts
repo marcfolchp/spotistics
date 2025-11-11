@@ -49,8 +49,8 @@ export async function extractJsonFromZip(zipBuffer: ArrayBuffer): Promise<Spotif
     }
   }
 
-  // Extract and parse each JSON file
-  for (const filename of jsonFiles) {
+  // Extract and parse JSON files in parallel for much better performance
+  const filePromises = jsonFiles.map(async (filename) => {
     try {
       const file = zipFile.files[filename];
       const content = await file.async('string');
@@ -60,14 +60,24 @@ export async function extractJsonFromZip(zipBuffer: ArrayBuffer): Promise<Spotif
       if (Array.isArray(jsonData) || (jsonData && typeof jsonData === 'object')) {
         const tracks = parseSpotifyExport(jsonData);
         console.log(`Processed ${filename}: ${tracks.length} tracks`);
-        allTracks.push(...tracks);
+        return tracks;
       } else {
         console.warn(`Skipping ${filename}: Invalid format`);
+        return [];
       }
     } catch (error) {
       console.error(`Error processing file ${filename}:`, error);
       // Continue with other files even if one fails
+      return [];
     }
+  });
+
+  // Wait for all files to be processed in parallel
+  const fileResults = await Promise.all(filePromises);
+  
+  // Flatten all tracks from all files
+  for (const tracks of fileResults) {
+    allTracks.push(...tracks);
   }
 
   console.log(`Total tracks extracted from ZIP: ${allTracks.length}`);
@@ -76,13 +86,8 @@ export async function extractJsonFromZip(zipBuffer: ArrayBuffer): Promise<Spotif
     throw new Error('No valid Spotify audio history data found in ZIP file. Please check the file format.');
   }
 
-  // Sort tracks by endTime (most recent first) to ensure consistent ordering
-  // This helps when combining data from multiple files
-  allTracks.sort((a, b) => {
-    const dateA = new Date(a.endTime).getTime();
-    const dateB = new Date(b.endTime).getTime();
-    return dateB - dateA; // Most recent first
-  });
+  // Note: Sorting removed for performance - not needed for database insertion
+  // Database will handle ordering when querying if needed
 
   return allTracks;
 }

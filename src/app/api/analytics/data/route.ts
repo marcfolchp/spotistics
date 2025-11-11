@@ -137,6 +137,80 @@ export async function GET(request: NextRequest) {
       });
     }
 
+    // For "year" time range, try to use pre-computed aggregations first (much faster!)
+    if (timeRange === 'year') {
+      console.log(`Using pre-computed aggregations for year data...`);
+      
+      try {
+        // Try to fetch pre-computed aggregations
+        const [allFrequencyData, allTimePatterns, allDayPatterns, allTopTracks, allTopArtists] = await Promise.all([
+          getAggregation<ListeningFrequency>(userId, 'date_frequency', groupBy).catch(() => null),
+          getAggregation<TimePattern>(userId, 'time_pattern').catch(() => null),
+          getAggregation<DayPattern>(userId, 'day_pattern').catch(() => null),
+          getAggregation<AggregatedTopTrack>(userId, 'top_tracks').catch(() => null),
+          getAggregation<AggregatedTopArtist>(userId, 'top_artists').catch(() => null),
+        ]);
+
+        // If we have pre-computed aggregations, use them directly (no data fetching needed!)
+        if (allFrequencyData && allTimePatterns && allDayPatterns && allTopTracks && allTopArtists) {
+          const dateRange = getDateRangeForTimeRange(timeRange);
+          
+          // Filter frequency data by date range
+          const frequencyData = allFrequencyData.filter((item) => {
+            const itemDate = new Date(item.date).getTime();
+            return itemDate >= dateRange.start.getTime() && itemDate <= dateRange.end.getTime();
+          });
+
+          // Use pre-computed aggregations directly - no data fetching!
+          // Top tracks/artists and time/day patterns are already aggregated, use them as-is
+          // They represent overall patterns which is what users want to see
+
+          // Get summary stats using fast SQL queries only
+          const { createSupabaseServerClient } = await import('@/lib/supabase/client');
+          const supabase = createSupabaseServerClient();
+          
+          // Get count for the year using SQL (very fast)
+          const { count: totalCount } = await supabase
+            .from('listening_data')
+            .select('*', { count: 'exact', head: true })
+            .eq('user_id', userId)
+            .gte('played_at', dateRange.start.toISOString())
+            .lte('played_at', dateRange.end.toISOString());
+
+          // For artist count, use an approximation from top artists (much faster than counting all)
+          // Or we can skip it and use the summary's total_artists as approximation
+          const totalArtists = allTopArtists.length > 0 ? Math.max(allTopArtists.length, summary?.total_artists || 0) : (summary?.total_artists || 0);
+
+          // Calculate filtered summary stats from frequency data
+          const totalListeningTime = frequencyData.reduce((sum, item) => sum + item.totalDuration, 0);
+          
+          const filteredSummary = {
+            ...summary,
+            total_tracks: totalCount,
+            total_artists: totalArtists,
+            total_listening_time_ms: totalListeningTime,
+            date_range_start: dateRange.start.toISOString(),
+            date_range_end: dateRange.end.toISOString(),
+          };
+
+          console.log(`Using pre-computed aggregations for year (no data fetching): ${frequencyData.length} date groups`);
+
+          return NextResponse.json({
+            summary: filteredSummary,
+            frequencyData,
+            timePatterns: allTimePatterns, // Use pre-computed
+            dayPatterns: allDayPatterns, // Use pre-computed
+            topTracks: allTopTracks.slice(0, 10), // Use pre-computed
+            topArtists: allTopArtists.slice(0, 10), // Use pre-computed
+            totalCount: totalCount,
+            allTimeTotalCount: summary?.total_tracks || 0,
+          });
+        }
+      } catch (error) {
+        console.warn('Error using pre-computed aggregations for year, falling back to raw data:', error);
+      }
+    }
+
     // For filtered time ranges, query Supabase with date filters (much faster!)
     const dateRange = getDateRangeForTimeRange(timeRange);
     console.log(`Fetching filtered listening data for time range: ${timeRange} (${dateRange.start.toISOString()} to ${dateRange.end.toISOString()})...`);

@@ -3,7 +3,7 @@
 import { ProtectedRoute } from '@/components/auth/ProtectedRoute';
 import { MobileNav } from '@/components/navigation/MobileNav';
 import { useSession } from '@/contexts/SessionContext';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 
 export default function UploadPage() {
@@ -25,6 +25,7 @@ function UploadContent() {
   const [fileName, setFileName] = useState<string | null>(null);
   const [jobId, setJobId] = useState<string | null>(null);
   const [hasExistingData, setHasExistingData] = useState<boolean | null>(null); // null = checking, true = has data, false = no data
+  const pollingIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
   // Check if user has existing data on mount
   useEffect(() => {
@@ -56,6 +57,30 @@ function UploadContent() {
     const savedJobId = localStorage.getItem('uploadJobId');
     const savedFileName = localStorage.getItem('uploadFileName');
     if (savedJobId && savedFileName) {
+      // Check job age first - if too old, clear it immediately
+      const jobIdParts = savedJobId.split('-');
+      if (jobIdParts.length >= 2) {
+        const timestamp = parseInt(jobIdParts[jobIdParts.length - 1]);
+        const age = Date.now() - timestamp;
+        const ageMinutes = age / 1000 / 60;
+        
+        // If job is older than 10 minutes, clear it immediately (very aggressive)
+        if (ageMinutes > 10) {
+          console.log('Job is too old, clearing localStorage');
+          localStorage.removeItem('uploadJobId');
+          localStorage.removeItem('uploadFileName');
+          // Check if data exists
+          fetch('/api/analytics/data?summary=true&timeRange=all', {
+            credentials: 'include',
+          }).then(res => res.json()).then(data => {
+            if (data.summary && data.summary.total_tracks > 0) {
+              setHasExistingData(true);
+            }
+          }).catch(() => {});
+          return;
+        }
+      }
+      
       // Check if job is still active
       const checkJob = async () => {
         try {
@@ -74,23 +99,68 @@ function UploadContent() {
               setTimeout(() => {
                 router.push('/analytics');
               }, 2000);
-            } else if (job.status !== 'failed') {
-              // Job still processing, resume polling
-              setJobId(savedJobId);
-              setFileName(savedFileName);
-              setIsUploading(true);
-              setUploadProgress(job.progress || 0);
-              setCurrentStage(job.message || 'Processing...');
-              pollJobStatus(savedJobId);
-            } else {
+            } else if (job.status === 'failed') {
               // Job failed, clear storage
               localStorage.removeItem('uploadJobId');
               localStorage.removeItem('uploadFileName');
               setError(job.error || 'Upload failed. Please try again.');
+            } else {
+              // Job still processing, but only resume if progress is reasonable
+              // If stuck at 95% for a while, don't resume polling
+              const currentProgress = job.progress || 0;
+              const jobIdParts = savedJobId.split('-');
+              let jobAgeMinutes = 0;
+              if (jobIdParts.length >= 2) {
+                const timestamp = parseInt(jobIdParts[jobIdParts.length - 1]);
+                const age = Date.now() - timestamp;
+                jobAgeMinutes = age / 1000 / 60;
+              }
+              if (currentProgress >= 95 && jobAgeMinutes > 10) {
+                // Likely stuck, clear and check data
+                localStorage.removeItem('uploadJobId');
+                localStorage.removeItem('uploadFileName');
+                fetch('/api/analytics/data?summary=true&timeRange=all', {
+                  credentials: 'include',
+                }).then(res => res.json()).then(data => {
+                  if (data.summary && data.summary.total_tracks > 0) {
+                    setHasExistingData(true);
+                    setSuccess(true);
+                    setUploadProgress(100);
+                    setTimeout(() => {
+                      router.push('/analytics');
+                    }, 2000);
+                  } else {
+                    setError('Upload appears to be stuck. Please try uploading again.');
+                  }
+                }).catch(() => {
+                  setError('Upload appears to be stuck. Please try uploading again.');
+                });
+              } else {
+                // Resume polling
+                setJobId(savedJobId);
+                setFileName(savedFileName);
+                setIsUploading(true);
+                setUploadProgress(currentProgress);
+                setCurrentStage(job.message || 'Processing...');
+                pollJobStatus(savedJobId);
+              }
             }
+          } else if (response.status === 404) {
+            // Job not found, clear storage
+            localStorage.removeItem('uploadJobId');
+            localStorage.removeItem('uploadFileName');
+            // Check if data exists
+            fetch('/api/analytics/data?summary=true&timeRange=all', {
+              credentials: 'include',
+            }).then(res => res.json()).then(data => {
+              if (data.summary && data.summary.total_tracks > 0) {
+                setHasExistingData(true);
+              }
+            }).catch(() => {});
           }
         } catch (err) {
           // If we can't check, clear storage
+          console.error('Error checking job status:', err);
           localStorage.removeItem('uploadJobId');
           localStorage.removeItem('uploadFileName');
         }
@@ -125,11 +195,12 @@ function UploadContent() {
 
       const xhr = new XMLHttpRequest();
 
-      // Track upload progress
+      // Track file upload progress (only 0-15% - file transfer is fast)
+      // The rest (15-100%) is for processing on the server
       xhr.upload.addEventListener('progress', (e) => {
         if (e.lengthComputable) {
-          const percentComplete = (e.loaded / e.total) * 100;
-          setUploadProgress(percentComplete);
+          const fileUploadPercent = (e.loaded / e.total) * 15; // File upload is only 0-15%
+          setUploadProgress(fileUploadPercent);
         }
       });
 
@@ -138,12 +209,16 @@ function UploadContent() {
           try {
             const response = JSON.parse(xhr.responseText);
             if (response.jobId) {
-              // Start polling for job status
+              // File upload complete, smoothly transition to processing (15%+)
+              // Don't reset progress - file upload was 0-15%, now continue from 15%
               setJobId(response.jobId);
               // Store jobId in localStorage for persistence
               localStorage.setItem('uploadJobId', response.jobId);
               localStorage.setItem('uploadFileName', file.name);
-              pollJobStatus(response.jobId);
+              // Small delay to ensure job is initialized on server before polling
+              setTimeout(() => {
+                pollJobStatus(response.jobId);
+              }, 100);
             } else {
               // Legacy response (immediate success)
               setSuccess(true);
@@ -177,11 +252,106 @@ function UploadContent() {
     }
   };
 
+  const stopUpload = () => {
+    // Clear polling interval
+    if (pollingIntervalRef.current) {
+      clearInterval(pollingIntervalRef.current);
+      pollingIntervalRef.current = null;
+    }
+    
+    // Clear localStorage
+    localStorage.removeItem('uploadJobId');
+    localStorage.removeItem('uploadFileName');
+    
+    // Reset state
+    setIsUploading(false);
+    setJobId(null);
+    setFileName(null);
+    setUploadProgress(0);
+    setCurrentStage('');
+    setError('Upload cancelled by user.');
+  };
+
   const pollJobStatus = async (id: string) => {
+    // Check job age first - if already old, stop immediately
+    const jobIdParts = id.split('-');
+    if (jobIdParts.length >= 2) {
+      const timestamp = parseInt(jobIdParts[jobIdParts.length - 1]);
+      const age = Date.now() - timestamp;
+      const ageMinutes = age / 1000 / 60;
+      
+      // If job is older than 15 minutes, stop immediately and check data
+      if (ageMinutes > 15) {
+        console.log('Job is too old, stopping polling immediately');
+        localStorage.removeItem('uploadJobId');
+        localStorage.removeItem('uploadFileName');
+        try {
+          const checkResponse = await fetch('/api/analytics/data?timeRange=all', {
+            credentials: 'include',
+          });
+          if (checkResponse.ok) {
+            const data = await checkResponse.json();
+            if (data.summary && data.summary.total_tracks > 0) {
+              setHasExistingData(true);
+              setSuccess(true);
+              setUploadProgress(100);
+              setCurrentStage('Upload completed');
+              setTimeout(() => {
+                router.push('/analytics');
+              }, 2000);
+              return;
+            }
+          }
+        } catch (err) {
+          console.error('Error checking data:', err);
+        }
+        setError('Upload job expired. Please check your analytics page or try uploading again.');
+        setIsUploading(false);
+        return;
+      }
+    }
+    
     let errorCount = 0;
     let dataCheckDone = false;
+    const startTime = Date.now();
+    const maxPollingTime = 5 * 60 * 1000; // 5 minutes max (very aggressive)
+    let lastProgress = 0;
+    let stuckProgressCount = 0;
+    const maxStuckCount = 5; // 5 polls (~50 seconds) with same progress - very aggressive
     
+    // Store interval reference so we can clear it
     const pollInterval = setInterval(async () => {
+      // Check if we've been polling too long
+      const elapsed = Date.now() - startTime;
+      if (elapsed > maxPollingTime) {
+        clearInterval(pollInterval);
+        localStorage.removeItem('uploadJobId');
+        localStorage.removeItem('uploadFileName');
+        // Check if data was uploaded despite timeout
+        try {
+          const checkResponse = await fetch('/api/analytics/data?timeRange=all', {
+            credentials: 'include',
+          });
+          if (checkResponse.ok) {
+            const data = await checkResponse.json();
+            if (data.summary && data.summary.total_tracks > 0) {
+              setHasExistingData(true);
+              setSuccess(true);
+              setUploadProgress(100);
+              setCurrentStage('Upload completed (timeout reached)');
+              setTimeout(() => {
+                router.push('/analytics');
+              }, 2000);
+              return;
+            }
+          }
+        } catch (err) {
+          console.error('Error checking data after timeout:', err);
+        }
+        setError('Upload timed out. Please check your analytics page or try uploading again.');
+        setIsUploading(false);
+        return;
+      }
       try {
         const response = await fetch(`/api/upload/status?jobId=${id}`, {
           credentials: 'include',
@@ -191,7 +361,48 @@ function UploadContent() {
           errorCount = 0; // Reset error count on success
           const job = await response.json();
           
-          setUploadProgress(job.progress || 0);
+          const currentProgress = job.progress || 0;
+          
+          // Check if progress is stuck
+          if (currentProgress === lastProgress && currentProgress > 0 && currentProgress < 100) {
+            stuckProgressCount++;
+            if (stuckProgressCount >= maxStuckCount) {
+              // Progress stuck for too long, check if data exists and stop polling
+              clearInterval(pollInterval);
+              localStorage.removeItem('uploadJobId');
+              localStorage.removeItem('uploadFileName');
+              try {
+                const checkResponse = await fetch('/api/analytics/data?timeRange=all', {
+                  credentials: 'include',
+                });
+                if (checkResponse.ok) {
+                  const data = await checkResponse.json();
+                  if (data.summary && data.summary.total_tracks > 0) {
+                    setHasExistingData(true);
+                    setSuccess(true);
+                    setUploadProgress(100);
+                    setCurrentStage('Upload completed (progress appeared stuck)');
+                    setTimeout(() => {
+                      router.push('/analytics');
+                    }, 2000);
+                    return;
+                  }
+                }
+              } catch (err) {
+                console.error('Error checking data after stuck progress:', err);
+              }
+              setError('Upload appears to be stuck. Please check your analytics page or try uploading again.');
+              setIsUploading(false);
+              return;
+            }
+          } else {
+            stuckProgressCount = 0; // Reset if progress changed
+            lastProgress = currentProgress;
+          }
+          
+          // Ensure progress never goes backwards (smooth progress bar)
+          // Also ensure we don't go below 15% (file upload is already done)
+          setUploadProgress((prev) => Math.max(15, Math.max(prev, currentProgress)));
           setCurrentStage(job.message || 'Processing...');
           
           if (job.status === 'completed') {
@@ -294,6 +505,9 @@ function UploadContent() {
         }
       }
     }, 1000); // Poll every second
+    
+    // Store interval reference
+    pollingIntervalRef.current = pollInterval;
     
     // Cleanup after 15 minutes (increased timeout for large files)
     setTimeout(() => {
@@ -460,14 +674,22 @@ function UploadContent() {
                         style={{ width: `${uploadProgress}%` }}
                       />
                     </div>
-                    {jobId && (
-                      <div className="rounded-lg border border-[#1DB954]/30 bg-[#1DB954]/10 p-3 text-xs text-[#1DB954]">
-                        <p className="font-semibold mb-1">Upload processing in background</p>
-                        <p className="text-[#B3B3B3]">
-                          Your file is being processed. You can safely close this page and check back later. The upload will continue processing in the background.
-                        </p>
-                      </div>
-                    )}
+                    <div className="flex items-center justify-between gap-3 mt-6">
+                      {jobId && (
+                        <div className="flex-1 rounded-lg border border-[#1DB954]/30 bg-[#1DB954]/10 p-3 text-xs text-[#1DB954]">
+                          <p className="font-semibold mb-1">Upload in progress</p>
+                          <p className="text-[#B3B3B3]">
+                            You can safely close this page and check back later.
+                          </p>
+                        </div>
+                      )}
+                      <button
+                        onClick={stopUpload}
+                        className="rounded-lg border border-red-500/50 bg-red-500/10 px-4 py-2 text-sm font-semibold text-red-400 transition-all hover:bg-red-500/20 active:scale-95"
+                      >
+                        Stop Upload
+                      </button>
+                    </div>
                   </div>
                 )}
 
@@ -486,17 +708,6 @@ function UploadContent() {
                     <p className="mt-1">{error}</p>
                   </div>
                 )}
-              </div>
-
-              {/* Info Box */}
-              <div className="rounded-lg bg-[#2A2A2A] p-4 text-sm">
-                <p className="font-semibold text-white">
-                  📊 What happens to your data?
-                </p>
-                <p className="mt-2 text-[#B3B3B3]">
-                  Your data is processed and stored securely in Supabase. We use your data only to generate your personalized
-                  analytics dashboard. Your data is private and only accessible to you.
-                </p>
               </div>
             </div>
           </div>
