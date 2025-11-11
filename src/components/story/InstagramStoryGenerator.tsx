@@ -205,7 +205,7 @@ export function InstagramStoryGenerator({ username }: InstagramStoryGeneratorPro
             // Ignore elements that might cause issues
             return false;
           },
-          onclone: (clonedDoc) => {
+          onclone: (clonedDoc: Document) => {
             // Convert all computed styles that might contain oklab to rgb/hex
             // This is necessary because Tailwind CSS v4 uses oklab colors internally
             const allElements = clonedDoc.querySelectorAll('*');
