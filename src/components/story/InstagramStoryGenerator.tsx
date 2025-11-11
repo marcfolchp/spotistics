@@ -358,14 +358,99 @@ export function InstagramStoryGenerator({ username }: InstagramStoryGeneratorPro
       return;
     }
 
+    const fileName = `wrappedify-story-${summary?.month.toLowerCase().replace(/\s+/g, '-') || 'recap'}.png`;
+    const file = new File([blob], fileName, { type: 'image/png' });
+
+    // Check if we're on a mobile device and can use Web Share API
+    const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+    const isIOS = /iPhone|iPad|iPod/i.test(navigator.userAgent);
+
+    // Try Web Share API first (works on iOS and Android)
+    if (isMobile && navigator.share) {
+      try {
+        // Check if we can share files
+        if (navigator.canShare && navigator.canShare({ files: [file] })) {
+          await navigator.share({
+            files: [file],
+            title: `${summary?.month || 'Monthly'} Recap`,
+            text: `Check out my ${summary?.month || 'monthly'} music recap!`,
+          });
+          return; // Successfully shared
+        }
+      } catch (err) {
+        // If share fails (user cancelled or error), fall through to download
+        if ((err as Error).name === 'AbortError') {
+          return; // User cancelled, don't show error
+        }
+        console.log('Web Share API failed, falling back to download:', err);
+      }
+    }
+
+    // For iOS, create an image element that users can long-press to save
+    if (isIOS) {
+      const url = URL.createObjectURL(blob);
+      
+      // Create a temporary image element
+      const img = document.createElement('img');
+      img.src = url;
+      img.style.position = 'fixed';
+      img.style.top = '50%';
+      img.style.left = '50%';
+      img.style.transform = 'translate(-50%, -50%)';
+      img.style.maxWidth = '90vw';
+      img.style.maxHeight = '90vh';
+      img.style.zIndex = '9999';
+      img.style.cursor = 'pointer';
+      img.style.border = '2px solid white';
+      img.style.borderRadius = '8px';
+      
+      // Add instructions overlay
+      const overlay = document.createElement('div');
+      overlay.style.position = 'fixed';
+      overlay.style.top = '10px';
+      overlay.style.left = '50%';
+      overlay.style.transform = 'translateX(-50%)';
+      overlay.style.backgroundColor = 'rgba(0, 0, 0, 0.8)';
+      overlay.style.color = 'white';
+      overlay.style.padding = '12px 24px';
+      overlay.style.borderRadius = '8px';
+      overlay.style.zIndex = '10000';
+      overlay.style.fontSize = '14px';
+      overlay.style.textAlign = 'center';
+      overlay.textContent = 'Long press the image to save to Photos';
+      
+      // Remove elements when clicked
+      const cleanup = () => {
+        document.body.removeChild(img);
+        document.body.removeChild(overlay);
+        URL.revokeObjectURL(url);
+      };
+      
+      img.addEventListener('click', cleanup);
+      overlay.addEventListener('click', cleanup);
+      
+      document.body.appendChild(img);
+      document.body.appendChild(overlay);
+      
+      // Auto-remove after 10 seconds
+      setTimeout(cleanup, 10000);
+      return;
+    }
+
+    // Fallback: Download the file (works on desktop and Android)
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
     link.href = url;
-    link.download = `wrappedify-story-${summary?.month.toLowerCase().replace(/\s+/g, '-') || 'recap'}.png`;
+    link.download = fileName;
+    link.style.display = 'none';
     document.body.appendChild(link);
     link.click();
-    document.body.removeChild(link);
-    URL.revokeObjectURL(url);
+    
+    // Clean up after a delay
+    setTimeout(() => {
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+    }, 100);
   };
 
   const shareStory = async () => {
@@ -470,7 +555,7 @@ export function InstagramStoryGenerator({ username }: InstagramStoryGeneratorPro
 
       {/* Full-screen Modal */}
       {isModalOpen && summary && (
-        <div className="fixed inset-0 z-50 bg-black flex items-center justify-center p-4">
+        <div className="fixed inset-0 z-50 bg-black flex items-center justify-center p-4 overflow-y-auto">
           {/* Close button */}
           <button
             onClick={() => setIsModalOpen(false)}
@@ -481,8 +566,8 @@ export function InstagramStoryGenerator({ username }: InstagramStoryGeneratorPro
             </svg>
           </button>
 
-          {/* Story Preview - Smaller to see full story */}
-          <div className="relative w-full max-w-xs mx-auto">
+          {/* Story Preview - Smaller on mobile */}
+          <div className="relative w-full max-w-[240px] sm:max-w-xs mx-auto my-4">
             {/* Visible preview in modal */}
             <div
               className="relative w-full rounded-2xl overflow-hidden shadow-2xl"
@@ -493,28 +578,28 @@ export function InstagramStoryGenerator({ username }: InstagramStoryGeneratorPro
                 backgroundPosition: 'center',
               }}
             >
-              <div className="relative h-full flex flex-col items-start justify-start p-6 text-white pt-20" style={{ color: fontColor }}>
+              <div className="relative h-full flex flex-col items-start justify-start p-4 text-white pt-16" style={{ color: fontColor }}>
                 {/* Top Track */}
                 {summary.topTracks.length > 0 && (
-                  <div className="w-full mb-4 px-2">
-                    <div className="bg-black/40 backdrop-blur-sm rounded-lg p-3 flex items-center gap-3">
+                  <div className="w-full mb-3 px-2">
+                    <div className="bg-black/40 backdrop-blur-sm rounded-lg p-2.5 flex items-center gap-2.5">
                       {summary.topTrackImage ? (
                         <img 
                           src={summary.topTrackImage} 
                           alt={summary.topTracks[0].trackName}
-                          className="w-14 h-14 rounded-lg object-cover flex-shrink-0"
+                          className="w-12 h-12 rounded-lg object-cover flex-shrink-0"
                         />
                       ) : (
-                        <div className="w-14 h-14 rounded-lg bg-[#1DB954]/20 flex items-center justify-center flex-shrink-0">
-                          <svg className="w-7 h-7" style={{ color: fontColor }} fill="currentColor" viewBox="0 0 24 24">
+                        <div className="w-12 h-12 rounded-lg bg-[#1DB954]/20 flex items-center justify-center flex-shrink-0">
+                          <svg className="w-6 h-6" style={{ color: fontColor }} fill="currentColor" viewBox="0 0 24 24">
                             <path d="M12 0C5.4 0 0 5.4 0 12s5.4 12 12 12 12-5.4 12-12S18.66 0 12 0zm5.521 17.34c-.24.359-.66.48-1.021.24-2.82-1.74-6.36-2.101-10.561-1.141-.418.122-.779-.179-.899-.539-.12-.421.18-.78.54-.9 4.56-1.021 8.52-.6 11.64 1.32.42.18.479.659.301 1.02zm1.44-3.3c-.301.42-.841.6-1.262.3-3.239-1.98-8.159-2.58-11.939-1.38-.479.12-1.02-.12-1.14-.6-.12-.48.12-1.021.6-1.141C9.6 9.9 15 10.561 18.72 12.84c.361.181.54.78.241 1.2zm.12-3.36C15.24 8.4 8.82 8.16 5.16 9.301c-.6.179-1.2-.181-1.38-.721-.18-.601.18-1.2.72-1.381 4.26-1.26 11.28-1.02 15.721 1.621.539.3.719 1.02.42 1.56-.299.421-1.02.599-1.559.3z" />
                           </svg>
                         </div>
                       )}
                       <div className="flex-1 min-w-0">
-                        <div className="text-[10px] font-semibold mb-0.5 uppercase tracking-wide opacity-80" style={{ color: fontColor }}>Top Track</div>
-                        <div className="text-sm font-bold truncate" style={{ color: fontColor }}>{summary.topTracks[0].trackName}</div>
-                        <div className="text-xs truncate opacity-80" style={{ color: fontColor }}>{summary.topTracks[0].artistName}</div>
+                        <div className="text-[9px] font-semibold mb-0.5 uppercase tracking-wide opacity-80" style={{ color: fontColor }}>Top Track</div>
+                        <div className="text-xs font-bold truncate" style={{ color: fontColor }}>{summary.topTracks[0].trackName}</div>
+                        <div className="text-[10px] truncate opacity-80" style={{ color: fontColor }}>{summary.topTracks[0].artistName}</div>
                       </div>
                     </div>
                   </div>
@@ -522,46 +607,46 @@ export function InstagramStoryGenerator({ username }: InstagramStoryGeneratorPro
 
                 {/* Top Artist */}
                 {summary.topArtists.length > 0 && (
-                  <div className="w-full mb-4 px-2">
-                    <div className="bg-black/40 backdrop-blur-sm rounded-lg p-3 flex items-center gap-3">
+                  <div className="w-full mb-3 px-2">
+                    <div className="bg-black/40 backdrop-blur-sm rounded-lg p-2.5 flex items-center gap-2.5">
                       {summary.topArtistImage ? (
                         <img 
                           src={summary.topArtistImage} 
                           alt={summary.topArtists[0].artistName}
-                          className="w-14 h-14 rounded-full object-cover flex-shrink-0"
+                          className="w-12 h-12 rounded-full object-cover flex-shrink-0"
                         />
                       ) : (
-                        <div className="w-14 h-14 rounded-full bg-[#1DB954]/20 flex items-center justify-center flex-shrink-0">
-                          <svg className="w-7 h-7" style={{ color: fontColor }} fill="currentColor" viewBox="0 0 24 24">
+                        <div className="w-12 h-12 rounded-full bg-[#1DB954]/20 flex items-center justify-center flex-shrink-0">
+                          <svg className="w-6 h-6" style={{ color: fontColor }} fill="currentColor" viewBox="0 0 24 24">
                             <path d="M12 0C5.4 0 0 5.4 0 12s5.4 12 12 12 12-5.4 12-12S18.66 0 12 0zm5.521 17.34c-.24.359-.66.48-1.021.24-2.82-1.74-6.36-2.101-10.561-1.141-.418.122-.779-.179-.899-.539-.12-.421.18-.78.54-.9 4.56-1.021 8.52-.6 11.64 1.32.42.18.479.659.301 1.02zm1.44-3.3c-.301.42-.841.6-1.262.3-3.239-1.98-8.159-2.58-11.939-1.38-.479.12-1.02-.12-1.14-.6-.12-.48.12-1.021.6-1.141C9.6 9.9 15 10.561 18.72 12.84c.361.181.54.78.241 1.2zm.12-3.36C15.24 8.4 8.82 8.16 5.16 9.301c-.6.179-1.2-.181-1.38-.721-.18-.601.18-1.2.72-1.381 4.26-1.26 11.28-1.02 15.721 1.621.539.3.719 1.02.42 1.56-.299.421-1.02.599-1.559.3z" />
                           </svg>
                         </div>
                       )}
                       <div className="flex-1 min-w-0">
-                        <div className="text-[10px] font-semibold mb-0.5 uppercase tracking-wide opacity-80" style={{ color: fontColor }}>Top Artist</div>
-                        <div className="text-sm font-bold truncate" style={{ color: fontColor }}>{summary.topArtists[0].artistName}</div>
+                        <div className="text-[9px] font-semibold mb-0.5 uppercase tracking-wide opacity-80" style={{ color: fontColor }}>Top Artist</div>
+                        <div className="text-xs font-bold truncate" style={{ color: fontColor }}>{summary.topArtists[0].artistName}</div>
                       </div>
                     </div>
                   </div>
                 )}
 
                 {/* Stats */}
-                <div className="grid grid-cols-2 gap-3 w-full px-2 mt-auto mb-16">
-                  <div className="bg-black/40 backdrop-blur-sm rounded-lg p-3 text-center">
-                    <div className="text-xl font-bold" style={{ color: fontColor }}>{summary.totalTracks.toLocaleString()}</div>
-                    <div className="text-[10px] opacity-80 mt-0.5 uppercase tracking-wide" style={{ color: fontColor }}>Tracks</div>
+                <div className="grid grid-cols-2 gap-2.5 w-full px-2 mt-auto mb-12">
+                  <div className="bg-black/40 backdrop-blur-sm rounded-lg p-2.5 text-center">
+                    <div className="text-sm font-bold" style={{ color: fontColor }}>{summary.totalTracks.toLocaleString()}</div>
+                    <div className="text-[9px] opacity-80 mt-0.5 uppercase tracking-wide" style={{ color: fontColor }}>Tracks</div>
                   </div>
-                  <div className="bg-black/40 backdrop-blur-sm rounded-lg p-3 text-center">
-                    <div className="text-xl font-bold" style={{ color: fontColor }}>{formatDuration(summary.totalMinutes)}</div>
-                    <div className="text-[10px] opacity-80 mt-0.5 uppercase tracking-wide" style={{ color: fontColor }}>Listened</div>
+                  <div className="bg-black/40 backdrop-blur-sm rounded-lg p-2.5 text-center">
+                    <div className="text-sm font-bold" style={{ color: fontColor }}>{formatDuration(summary.totalMinutes)}</div>
+                    <div className="text-[9px] opacity-80 mt-0.5 uppercase tracking-wide" style={{ color: fontColor }}>Listened</div>
                   </div>
                 </div>
 
                 {/* Caption at bottom */}
                 <div className="absolute bottom-3 left-0 right-0 px-2">
                   <div className="bg-black/40 backdrop-blur-sm rounded-lg px-3 py-1.5 inline-block mx-auto">
-                    <div className="text-xs font-semibold flex items-center justify-center gap-1.5" style={{ color: fontColor }}>
-                      <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 24 24">
+                    <div className="text-[10px] font-semibold flex items-center justify-center gap-1.5" style={{ color: fontColor }}>
+                      <svg className="w-2.5 h-2.5" fill="currentColor" viewBox="0 0 24 24">
                         <path d="M9 11.24V7.5a2.5 2.5 0 0 1 5 0v3.74c1.21-.81 2-2.18 2-3.74C16 5.01 13.99 3 11.5 3S7 5.01 7 7.5c0 1.56.79 2.93 2 3.74zm9.84 4.63l-4.54-2.26c-.17-.07-.35-.11-.54-.11H13v-6c0-.83-.67-1.5-1.5-1.5S10 6.67 10 7.5v10.74l-3.43-.72c-.08-.01-.15-.03-.24-.03-.31 0-.59.13-.79.33l-.79.8 4.94 4.94c.27.27.65.44 1.06.44h6.79c.75 0 1.33-.55 1.44-1.28l.75-5.27c.01-.07.02-.14.02-.2 0-.62-.38-1.16-.91-1.38z"/>
                       </svg>
                       <span>stats.fm/{username}</span>
@@ -664,12 +749,12 @@ export function InstagramStoryGenerator({ username }: InstagramStoryGeneratorPro
             </div>
 
             {/* Color Palette */}
-            <div className="flex items-center justify-center gap-3 mt-6">
+            <div className="flex items-center justify-center gap-2 sm:gap-3 mt-4 sm:mt-6">
               {COLOR_PALETTES.map((color) => (
                 <button
                   key={color.value}
                   onClick={() => setFontColor(color.value)}
-                  className={`w-10 h-10 rounded-full transition-all ${
+                  className={`w-8 h-8 sm:w-10 sm:h-10 rounded-full transition-all ${
                     fontColor === color.value ? 'ring-2 ring-white ring-offset-2 ring-offset-black scale-110' : ''
                   }`}
                   style={{ backgroundColor: color.value }}
@@ -679,28 +764,28 @@ export function InstagramStoryGenerator({ username }: InstagramStoryGeneratorPro
             </div>
 
             {/* Action buttons */}
-            <div className="flex items-center justify-center gap-4 mt-6">
+            <div className="flex items-center justify-center gap-3 sm:gap-4 mt-4 sm:mt-6">
               <button
                 onClick={saveToPhotos}
                 disabled={isGenerating}
-                className="flex flex-col items-center justify-center gap-1 w-16 h-16 rounded-full bg-white/10 hover:bg-white/20 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                className="flex flex-col items-center justify-center gap-1 w-14 h-14 sm:w-16 sm:h-16 rounded-full bg-white/10 hover:bg-white/20 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                 title="Save to Photos"
               >
-                <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg className="w-5 h-5 sm:w-6 sm:h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
                 </svg>
-                <span className="text-xs text-white">Save</span>
+                <span className="text-[10px] sm:text-xs text-white">Save</span>
               </button>
               <button
                 onClick={shareStory}
                 disabled={isGenerating}
-                className="flex flex-col items-center justify-center gap-1 w-16 h-16 rounded-full bg-white/10 hover:bg-white/20 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                className="flex flex-col items-center justify-center gap-1 w-14 h-14 sm:w-16 sm:h-16 rounded-full bg-white/10 hover:bg-white/20 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                 title="Share"
               >
-                <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg className="w-5 h-5 sm:w-6 sm:h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" />
                 </svg>
-                <span className="text-xs text-white">Share</span>
+                <span className="text-[10px] sm:text-xs text-white">Share</span>
               </button>
             </div>
 
