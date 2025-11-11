@@ -289,13 +289,6 @@ function HomeContent() {
               <div className="grid grid-cols-2 gap-4 sm:gap-6">
                 {/* Monthly Recap Card */}
                 <InstagramStoryGenerator username="bondmarcbond" />
-                
-                {/* Placeholder for future recap cards */}
-                <div className="rounded-lg bg-[#181818] p-4 transition-colors hover:bg-[#282828] sm:p-6 aspect-square flex items-center justify-center">
-                  <div className="text-center text-[#B3B3B3] text-sm">
-                    More recaps coming soon
-                  </div>
-                </div>
               </div>
             </div>
           </div>
