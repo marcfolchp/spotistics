@@ -361,79 +361,48 @@ export function InstagramStoryGenerator({ username }: InstagramStoryGeneratorPro
     const fileName = `wrappedify-story-${summary?.month.toLowerCase().replace(/\s+/g, '-') || 'recap'}.png`;
     const file = new File([blob], fileName, { type: 'image/png' });
 
-    // Check if we're on a mobile device and can use Web Share API
+    // Check if we're on a mobile device
     const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
     const isIOS = /iPhone|iPad|iPod/i.test(navigator.userAgent);
 
-    // Try Web Share API first (works on iOS and Android)
+    // Try Web Share API first (works on iOS 14.5+ and Android)
     if (isMobile && navigator.share) {
       try {
-        // Check if we can share files
+        // Check if we can share files (iOS 14.5+ and Android)
         if (navigator.canShare && navigator.canShare({ files: [file] })) {
           await navigator.share({
             files: [file],
             title: `${summary?.month || 'Monthly'} Recap`,
             text: `Check out my ${summary?.month || 'monthly'} music recap!`,
           });
-          return; // Successfully shared
+          return; // Successfully shared - user can save from share sheet
         }
       } catch (err) {
-        // If share fails (user cancelled or error), fall through to download
+        // If user cancelled, just return silently
         if ((err as Error).name === 'AbortError') {
-          return; // User cancelled, don't show error
+          return;
         }
-        console.log('Web Share API failed, falling back to download:', err);
+        // If share failed for other reasons, continue to fallback
+        console.log('Web Share API not available or failed:', err);
       }
     }
 
-    // For iOS, create an image element that users can long-press to save
+    // For iOS devices that don't support file sharing, use download link
+    // iOS Safari will download the image, then user can save from Photos app
     if (isIOS) {
       const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = fileName;
+      link.style.display = 'none';
+      document.body.appendChild(link);
+      link.click();
       
-      // Create a temporary image element
-      const img = document.createElement('img');
-      img.src = url;
-      img.style.position = 'fixed';
-      img.style.top = '50%';
-      img.style.left = '50%';
-      img.style.transform = 'translate(-50%, -50%)';
-      img.style.maxWidth = '90vw';
-      img.style.maxHeight = '90vh';
-      img.style.zIndex = '9999';
-      img.style.cursor = 'pointer';
-      img.style.border = '2px solid white';
-      img.style.borderRadius = '8px';
-      
-      // Add instructions overlay
-      const overlay = document.createElement('div');
-      overlay.style.position = 'fixed';
-      overlay.style.top = '10px';
-      overlay.style.left = '50%';
-      overlay.style.transform = 'translateX(-50%)';
-      overlay.style.backgroundColor = 'rgba(0, 0, 0, 0.8)';
-      overlay.style.color = 'white';
-      overlay.style.padding = '12px 24px';
-      overlay.style.borderRadius = '8px';
-      overlay.style.zIndex = '10000';
-      overlay.style.fontSize = '14px';
-      overlay.style.textAlign = 'center';
-      overlay.textContent = 'Long press the image to save to Photos';
-      
-      // Remove elements when clicked
-      const cleanup = () => {
-        document.body.removeChild(img);
-        document.body.removeChild(overlay);
+      // Clean up after a delay
+      setTimeout(() => {
+        document.body.removeChild(link);
         URL.revokeObjectURL(url);
-      };
-      
-      img.addEventListener('click', cleanup);
-      overlay.addEventListener('click', cleanup);
-      
-      document.body.appendChild(img);
-      document.body.appendChild(overlay);
-      
-      // Auto-remove after 10 seconds
-      setTimeout(cleanup, 10000);
+      }, 100);
       return;
     }
 
