@@ -37,16 +37,21 @@ async function processUploadInBackground(
     if (fileName.endsWith('.zip')) {
       try {
         const fileSizeMB = (arrayBuffer.byteLength / 1024 / 1024).toFixed(2);
-        console.log(`Processing ZIP file: ${fileName} (${fileSizeMB} MB)`);
+        console.log(`[${jobId}] Processing ZIP file: ${fileName} (${fileSizeMB} MB)`);
         exportTracks = await extractJsonFromZip(arrayBuffer);
-        console.log(`Extracted ${exportTracks.length} tracks from ZIP file`);
+        console.log(`[${jobId}] Extracted ${exportTracks.length} tracks from ZIP file`);
+        
+        if (exportTracks.length === 0) {
+          throw new Error('No valid streaming history data found in ZIP file. Please ensure the ZIP contains Spotify export JSON files.');
+        }
       } catch (zipError: any) {
-        console.error('ZIP extraction error:', zipError);
+        console.error(`[${jobId}] ZIP extraction error:`, zipError);
+        console.error(`[${jobId}] ZIP error stack:`, zipError.stack);
         updateUploadJob(jobId, {
           status: 'failed',
           error: zipError.message || 'Failed to extract ZIP file',
           progress: 0,
-          message: 'Extraction failed',
+          message: `Extraction failed: ${zipError.message || 'Unknown error'}`,
         });
         return;
       }
@@ -105,28 +110,45 @@ async function processUploadInBackground(
 
     // Store data in Supabase
     try {
-      console.log(`Storing data for user ${userId}...`);
+      console.log(`[${jobId}] Storing data for user ${userId}...`);
       
       // Delete existing data
       try {
+        console.log(`[${jobId}] Deleting existing data for user ${userId}...`);
         await deleteUserListeningData(userId);
-        console.log('Deleted existing data for user');
-      } catch (deleteError) {
-        console.log('No existing data to delete or error deleting:', deleteError);
+        console.log(`[${jobId}] Deleted existing data for user`);
+      } catch (deleteError: any) {
+        console.log(`[${jobId}] No existing data to delete or error deleting:`, deleteError?.message || deleteError);
       }
       
       // Store listening data with progress updates
-      console.log(`Storing ${processedData.length} tracks in Supabase...`);
+      console.log(`[${jobId}] Storing ${processedData.length} tracks in Supabase...`);
+      const startTime = Date.now();
       await storeListeningData(userId, processedData);
-      console.log('Successfully stored listening data');
+      const endTime = Date.now();
+      console.log(`[${jobId}] Successfully stored listening data in ${((endTime - startTime) / 1000).toFixed(2)}s`);
+      
+      // Verify data was stored
+      try {
+        const { getListeningData } = await import('@/lib/supabase/storage');
+        const storedCount = await getListeningData(userId, 1);
+        if (storedCount.length === 0 && processedData.length > 0) {
+          throw new Error('Data storage verification failed: No data found after storage');
+        }
+        console.log(`[${jobId}] Verified: Data successfully stored in database`);
+      } catch (verifyError: any) {
+        console.error(`[${jobId}] Verification error:`, verifyError);
+        throw new Error(`Storage verification failed: ${verifyError.message}`);
+      }
       
       // Calculate summary statistics
       const totalArtists = new Set(processedData.map((d) => d.artistName)).size;
       const totalListeningTime = processedData.reduce((sum, d) => sum + d.durationMs, 0);
       
-      console.log(`Summary: ${processedData.length} tracks, ${totalArtists} artists, ${(totalListeningTime / 1000 / 60 / 60).toFixed(2)} hours of listening`);
+      console.log(`[${jobId}] Summary: ${processedData.length} tracks, ${totalArtists} artists, ${(totalListeningTime / 1000 / 60 / 60).toFixed(2)} hours of listening`);
       
       // Store summary
+      console.log(`[${jobId}] Storing user data summary...`);
       await storeUserDataSummary(userId, {
         totalTracks: processedData.length,
         totalArtists: totalArtists,
@@ -134,7 +156,7 @@ async function processUploadInBackground(
         dateRangeStart: oldestDate,
         dateRangeEnd: newestDate,
       });
-      console.log('Successfully stored user data summary');
+      console.log(`[${jobId}] Successfully stored user data summary`);
 
       updateUploadJob(jobId, {
         status: 'processing',
@@ -192,21 +214,26 @@ async function processUploadInBackground(
         },
       });
     } catch (storageError: any) {
-      console.error('Error storing data in Supabase:', storageError);
+      console.error(`[${jobId}] Error storing data in Supabase:`, storageError);
+      console.error(`[${jobId}] Storage error stack:`, storageError.stack);
+      console.error(`[${jobId}] Storage error details:`, JSON.stringify(storageError, null, 2));
       updateUploadJob(jobId, {
         status: 'failed',
         error: storageError.message || 'Failed to store data',
         progress: 0,
-        message: 'Storage failed',
+        message: `Storage failed: ${storageError.message || 'Unknown error'}`,
       });
+      return; // Exit early on storage error
     }
   } catch (error: any) {
-    console.error('Background processing error:', error);
+    console.error(`[${jobId}] Background processing error:`, error);
+    console.error(`[${jobId}] Error stack:`, error.stack);
+    console.error(`[${jobId}] Error details:`, JSON.stringify(error, Object.getOwnPropertyNames(error), 2));
     updateUploadJob(jobId, {
       status: 'failed',
       error: error.message || 'Processing failed',
       progress: 0,
-      message: 'Processing failed',
+      message: `Processing failed: ${error.message || 'Unknown error'}`,
     });
   }
 }
@@ -284,14 +311,15 @@ export async function POST(request: NextRequest) {
     const arrayBuffer = await file.arrayBuffer();
     const buffer = Buffer.from(arrayBuffer);
 
-    // Create job and return immediately
+    // Create job
     const jobId = createUploadJob(userId);
     
-    // Process in background (don't await)
+    // Start processing (fire and forget, but with better error handling)
     // Note: In serverless environments, this might not complete if the function times out
     // For production, use a proper job queue (e.g., Bull, BullMQ, or a cloud service)
     processUploadInBackground(jobId, arrayBuffer, buffer, fileName, userId, accessToken, cookieStore).catch((error) => {
       console.error('Background processing error:', error);
+      console.error('Error stack:', error.stack);
       updateUploadJob(jobId, {
         status: 'failed',
         error: error.message || 'Processing failed',

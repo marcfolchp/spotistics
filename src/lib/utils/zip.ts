@@ -13,20 +13,41 @@ export async function extractJsonFromZip(zipBuffer: ArrayBuffer): Promise<Spotif
   const allTracks: SpotifyExportTrack[] = [];
 
   // Find all JSON files in the ZIP (including nested folders)
-  // Filter specifically for audio streaming history files (not video)
+  // Filter for streaming history files - Spotify exports can have different naming:
+  // - streaming_history_audio_*.json (new format)
+  // - StreamingHistory_music_*.json (old format)
+  // - streaming_history_*.json (variations)
   const jsonFiles = Object.keys(zipFile.files).filter((filename) => {
     const file = zipFile.files[filename];
     const lowerFilename = filename.toLowerCase();
     
-    // Only process audio streaming history files, ignore video history
+    // Process audio streaming history files, ignore video history
     return (
       !file.dir &&
       lowerFilename.endsWith('.json') &&
-      lowerFilename.includes('streaming_history_audio')
+      (lowerFilename.includes('streaming_history_audio') ||
+       lowerFilename.includes('streaminghistory_music') ||
+       lowerFilename.includes('streaming_history') ||
+       lowerFilename.includes('streaminghistory'))
     );
   });
 
   console.log(`Found ${jsonFiles.length} audio history JSON files in ZIP`);
+  
+  // If no files found with expected patterns, try to find any JSON files
+  if (jsonFiles.length === 0) {
+    console.warn('No files found with expected patterns, searching for any JSON files...');
+    const allJsonFiles = Object.keys(zipFile.files).filter((filename) => {
+      const file = zipFile.files[filename];
+      return !file.dir && filename.toLowerCase().endsWith('.json');
+    });
+    console.log(`Found ${allJsonFiles.length} total JSON files in ZIP`);
+    
+    // Use all JSON files if no specific pattern matches
+    if (allJsonFiles.length > 0) {
+      jsonFiles.push(...allJsonFiles);
+    }
+  }
 
   // Extract and parse each JSON file
   for (const filename of jsonFiles) {
