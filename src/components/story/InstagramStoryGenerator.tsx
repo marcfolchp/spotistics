@@ -201,7 +201,7 @@ export function InstagramStoryGenerator({ username }: InstagramStoryGeneratorPro
           logging: false,
           allowTaint: true,
           foreignObjectRendering: false, // Disable to avoid oklab parsing issues
-          ignoreElements: (element) => {
+          ignoreElements: (element: HTMLElement) => {
             // Ignore elements that might cause issues
             return false;
           },
