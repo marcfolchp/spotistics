@@ -359,54 +359,55 @@ export function InstagramStoryGenerator({ username }: InstagramStoryGeneratorPro
     }
 
     const fileName = `wrappedify-story-${summary?.month.toLowerCase().replace(/\s+/g, '-') || 'recap'}.png`;
-    const file = new File([blob], fileName, { type: 'image/png' });
-
-    // Check if we're on a mobile device
-    const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+    
+    // Check if we're on iOS
     const isIOS = /iPhone|iPad|iPod/i.test(navigator.userAgent);
+    const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
 
-    // Try Web Share API first (works on iOS 14.5+ and Android)
+    // For iOS and mobile devices, use Web Share API to open native share sheet
+    // This allows users to save to Photos or share to other apps
     if (isMobile && navigator.share) {
       try {
-        // Check if we can share files (iOS 14.5+ and Android)
+        // Create file from blob - ensure it's a proper File object
+        const file = new File([blob], fileName, { 
+          type: 'image/png',
+          lastModified: Date.now()
+        });
+
+        // Check if we can share files
         if (navigator.canShare && navigator.canShare({ files: [file] })) {
+          // Open native share sheet - user can choose to save to Photos or share
           await navigator.share({
             files: [file],
             title: `${summary?.month || 'Monthly'} Recap`,
             text: `Check out my ${summary?.month || 'monthly'} music recap!`,
           });
-          return; // Successfully shared - user can save from share sheet
+          return; // Successfully opened share sheet
+        } else {
+          // If canShare returns false, try sharing anyway (some browsers don't support canShare properly)
+          // This will work on iOS 14.5+ even if canShare returns false
+          try {
+            await navigator.share({
+              files: [file],
+              title: `${summary?.month || 'Monthly'} Recap`,
+            });
+            return;
+          } catch (shareErr) {
+            // If that fails, continue to fallback
+            console.log('Direct share attempt failed:', shareErr);
+          }
         }
       } catch (err) {
-        // If user cancelled, just return silently
+        // If user cancelled share, just return silently
         if ((err as Error).name === 'AbortError') {
           return;
         }
-        // If share failed for other reasons, continue to fallback
-        console.log('Web Share API not available or failed:', err);
+        console.log('Web Share API error:', err);
+        // Continue to fallback
       }
     }
 
-    // For iOS devices that don't support file sharing, use download link
-    // iOS Safari will download the image, then user can save from Photos app
-    if (isIOS) {
-      const url = URL.createObjectURL(blob);
-      const link = document.createElement('a');
-      link.href = url;
-      link.download = fileName;
-      link.style.display = 'none';
-      document.body.appendChild(link);
-      link.click();
-      
-      // Clean up after a delay
-      setTimeout(() => {
-        document.body.removeChild(link);
-        URL.revokeObjectURL(url);
-      }, 100);
-      return;
-    }
-
-    // Fallback: Download the file (works on desktop and Android)
+    // Fallback: Download the file (for desktop or if share doesn't work)
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
     link.href = url;
@@ -415,7 +416,6 @@ export function InstagramStoryGenerator({ username }: InstagramStoryGeneratorPro
     document.body.appendChild(link);
     link.click();
     
-    // Clean up after a delay
     setTimeout(() => {
       document.body.removeChild(link);
       URL.revokeObjectURL(url);
