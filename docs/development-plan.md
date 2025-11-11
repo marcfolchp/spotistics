@@ -1,4 +1,4 @@
-# Spotistics Development Plan
+# Wrappedify Development Plan
 
 This document outlines the step-by-step plan to build the Spotify Data Analytics App based on the requirements in `context.md`.
 

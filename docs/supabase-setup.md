@@ -8,7 +8,7 @@ This guide will help you set up Supabase for storing user Spotify data.
 2. Sign up or log in
 3. Click "New Project"
 4. Fill in the project details:
-   - **Name**: Spotistics (or your preferred name)
+   - **Name**: Wrappedify (or your preferred name)
    - **Database Password**: Create a strong password (save this!)
    - **Region**: Choose the closest region to your users
 5. Click "Create new project"

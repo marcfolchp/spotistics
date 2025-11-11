@@ -6,6 +6,7 @@ import { MobileNav } from '@/components/navigation/MobileNav';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState, useRef } from 'react';
 import { useTopTracks, useTopArtists, useRecentlyPlayed } from '@/hooks/useSpotifyData';
+import { InstagramStoryGenerator } from '@/components/story/InstagramStoryGenerator';
 import type { SpotifyUser } from '@/types';
 
 export default function HomePage() {
@@ -79,7 +80,7 @@ function HomeContent() {
                 </svg>
               </div>
               <h1 className="text-base font-bold text-white sm:text-xl">
-                Spotistics
+                Wrappedify
               </h1>
             </div>
             <div className="flex items-center gap-1.5 sm:gap-3">
@@ -278,6 +279,23 @@ function HomeContent() {
                 ) : (
                   <p className="text-sm text-[#B3B3B3]">No recent tracks found.</p>
                 )}
+              </div>
+
+            </div>
+
+            {/* "For you" Section */}
+            <div className="mt-8 sm:mt-12">
+              <h2 className="text-xl font-bold text-white mb-4 sm:text-2xl sm:mb-6">For you</h2>
+              <div className="grid grid-cols-2 gap-4 sm:gap-6">
+                {/* Monthly Recap Card */}
+                <InstagramStoryGenerator username="bondmarcbond" />
+                
+                {/* Placeholder for future recap cards */}
+                <div className="rounded-lg bg-[#181818] p-4 transition-colors hover:bg-[#282828] sm:p-6 aspect-square flex items-center justify-center">
+                  <div className="text-center text-[#B3B3B3] text-sm">
+                    More recaps coming soon
+                  </div>
+                </div>
               </div>
             </div>
           </div>

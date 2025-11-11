@@ -1,6 +1,6 @@
 # Supabase Table Reference
 
-This document provides a complete reference of all tables used in Spotistics.
+This document provides a complete reference of all tables used in Wrappedify.
 
 ## Table Overview
 

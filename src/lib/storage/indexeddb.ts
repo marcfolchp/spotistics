@@ -3,7 +3,7 @@
  * This allows storing large amounts of data client-side
  */
 
-const DB_NAME = 'spotistics';
+const DB_NAME = 'wrappedify';
 const DB_VERSION = 1;
 const STORE_NAME = 'spotifyData';
 

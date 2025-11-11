@@ -14,7 +14,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Spotistics - Spotify Data Analytics",
+  title: "Wrappedify - Spotify Data Analytics",
   description: "Analyze your Spotify listening history and discover insights about your music habits",
 };
 

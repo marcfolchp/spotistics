@@ -1,4 +1,4 @@
-# Spotistics
+# Wrappedify
 
 A Spotify Data Analytics App that allows users to retrieve and analyze their full listening history using both Spotify's official API and user-provided data exports.
 
@@ -37,7 +37,7 @@ A Spotify Data Analytics App that allows users to retrieve and analyze their ful
 1. **Clone the repository**
    ```bash
    git clone <repository-url>
-   cd spotistics
+   cd wrappedify
    ```
 
 2. **Install dependencies**

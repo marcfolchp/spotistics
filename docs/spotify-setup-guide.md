@@ -8,7 +8,7 @@
 2. Log in with your Spotify account
 3. Click **"Create an app"** button
 4. Fill in the form:
-   - **App name**: Spotistics (or any name you prefer)
+   - **App name**: Wrappedify (or any name you prefer)
    - **App description**: Spotify Data Analytics App
    - **Website**: (optional) Leave blank or add your website
    - **Redirect URI**: `http://localhost:3000/api/auth/spotify/callback`

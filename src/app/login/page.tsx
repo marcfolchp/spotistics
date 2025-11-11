@@ -109,7 +109,7 @@ function LoginContent() {
             </div>
           </div>
           <h1 className="text-3xl font-bold text-white sm:text-4xl">
-            Spotistics
+            Wrappedify
           </h1>
           <p className="mt-2 text-base text-[#B3B3B3] sm:text-lg">
             Analyze your Spotify listening history
@@ -174,7 +174,7 @@ function LoginContent() {
 
           <div className="pt-3 text-center text-[10px] text-[#6A6A6A] sm:pt-4 sm:text-xs">
             <p>
-              By connecting, you agree to allow Spotistics to access your
+              By connecting, you agree to allow Wrappedify to access your
               Spotify account data for analysis purposes.
             </p>
           </div>

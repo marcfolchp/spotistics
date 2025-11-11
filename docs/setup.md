@@ -21,7 +21,7 @@ NEXTAUTH_URL=http://localhost:3000
 1. Go to [Spotify Developer Dashboard](https://developer.spotify.com/dashboard)
 2. Click "Create an app"
 3. Fill in the app details:
-   - App name: Spotistics (or your preferred name)
+   - App name: Wrappedify (or your preferred name)
    - App description: Spotify Data Analytics App
    - Redirect URI: `http://localhost:3000/api/auth/spotify/callback`
 4. Click "Save"

@@ -98,7 +98,7 @@ function AnalyticsContent() {
                   </svg>
                 </div>
                 <h1 className="text-base font-bold text-white sm:text-xl">
-                  Spotistics
+                  Wrappedify
                 </h1>
               </div>
               <div className="flex items-center gap-1.5 sm:gap-3">
@@ -186,7 +186,7 @@ function AnalyticsContent() {
                 </svg>
               </div>
               <h1 className="text-base font-bold text-white sm:text-xl">
-                Spotistics
+                Wrappedify
               </h1>
             </div>
             <div className="flex items-center gap-1.5 sm:gap-3">
