@@ -6,9 +6,21 @@ import type { ProcessedListeningData } from '@/types';
  */
 export async function storeListeningData(
   userId: string,
-  data: ProcessedListeningData[]
+  data: ProcessedListeningData[],
+  onProgress?: (progress: number, message: string) => void
 ): Promise<void> {
-  const supabase = createSupabaseServerClient();
+  if (!data || data.length === 0) {
+    console.warn('No data to store');
+    return;
+  }
+
+  let supabase;
+  try {
+    supabase = createSupabaseServerClient();
+  } catch (clientError: any) {
+    console.error('Failed to create Supabase client:', clientError);
+    throw new Error(`Database connection failed: ${clientError.message}`);
+  }
 
   // Prepare data for insertion
   const rows = data.map((item) => ({
@@ -23,23 +35,43 @@ export async function storeListeningData(
   // Insert data in batches (Supabase has a limit of 1000 rows per insert)
   const batchSize = 1000;
   const totalBatches = Math.ceil(rows.length / batchSize);
-  console.log(`Inserting ${rows.length} rows in ${totalBatches} batches...`);
+  console.log(`Inserting ${rows.length} rows in ${totalBatches} batches into listening_data table...`);
   
   for (let i = 0; i < rows.length; i += batchSize) {
     const batch = rows.slice(i, i + batchSize);
     const batchNumber = Math.floor(i / batchSize) + 1;
     
-    const { error } = await supabase
-      .from('listening_data')
-      .insert(batch);
+    try {
+      const { error } = await supabase
+        .from('listening_data')
+        .insert(batch);
 
-    if (error) {
-      console.error(`Error inserting batch ${batchNumber}/${totalBatches}:`, error);
-      throw new Error(`Failed to store data: ${error.message}`);
-    }
-    
-    if (batchNumber % 10 === 0 || batchNumber === totalBatches) {
-      console.log(`Inserted batch ${batchNumber}/${totalBatches} (${i + batch.length}/${rows.length} rows)`);
+      if (error) {
+        console.error(`Error inserting batch ${batchNumber}/${totalBatches}:`, error);
+        console.error(`Error code:`, error.code);
+        console.error(`Error hint:`, error.hint);
+        console.error(`Error details:`, JSON.stringify(error, null, 2));
+        console.error(`Batch size:`, batch.length);
+        console.error(`Batch sample (first row):`, JSON.stringify(batch[0], null, 2));
+        throw new Error(`Failed to store data: ${error.message || 'Unknown error'} (code: ${error.code || 'N/A'})`);
+      }
+      
+      console.log(`[Batch ${batchNumber}] Successfully inserted ${batch.length} rows`);
+      
+      // Update progress
+      const progress = Math.floor((batchNumber / totalBatches) * 100);
+      const message = `Storing data... ${batchNumber}/${totalBatches} batches (${Math.min(i + batch.length, rows.length)}/${rows.length} tracks)`;
+      
+      if (onProgress) {
+        onProgress(progress, message);
+      }
+      
+      if (batchNumber % 10 === 0 || batchNumber === totalBatches) {
+        console.log(`Inserted batch ${batchNumber}/${totalBatches} (${i + batch.length}/${rows.length} rows)`);
+      }
+    } catch (batchError: any) {
+      console.error(`[Batch ${batchNumber}] Error:`, batchError);
+      throw batchError;
     }
   }
   

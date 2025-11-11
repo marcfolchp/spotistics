@@ -25,6 +25,9 @@ async function processUploadInBackground(
   accessToken: string,
   cookieStore: Awaited<ReturnType<typeof cookies>>
 ) {
+  console.log(`[${jobId}] Starting background processing for user ${userId}, file: ${fileName}`);
+  const startTime = Date.now();
+  
   try {
     updateUploadJob(jobId, {
       status: 'extracting',
@@ -124,20 +127,39 @@ async function processUploadInBackground(
       // Store listening data with progress updates
       console.log(`[${jobId}] Storing ${processedData.length} tracks in Supabase...`);
       const startTime = Date.now();
-      await storeListeningData(userId, processedData);
+      
+      // Store with progress callback
+      await storeListeningData(userId, processedData, (progress, message) => {
+        updateUploadJob(jobId, {
+          status: 'storing',
+          progress: 60 + Math.floor(progress * 0.15), // 60-75% for storage
+          message: message || `Storing data... ${progress}%`,
+        });
+      });
+      
       const endTime = Date.now();
       console.log(`[${jobId}] Successfully stored listening data in ${((endTime - startTime) / 1000).toFixed(2)}s`);
       
       // Verify data was stored
+      updateUploadJob(jobId, {
+        status: 'storing',
+        progress: 75,
+        message: 'Verifying data storage...',
+      });
+      
       try {
         const { getListeningData } = await import('@/lib/supabase/storage');
+        // Wait a moment for database to commit
+        await new Promise(resolve => setTimeout(resolve, 1000));
         const storedCount = await getListeningData(userId, 1);
         if (storedCount.length === 0 && processedData.length > 0) {
-          throw new Error('Data storage verification failed: No data found after storage');
+          console.error(`[${jobId}] Verification failed: Expected ${processedData.length} tracks but found 0`);
+          throw new Error('Data storage verification failed: No data found after storage. The data may not have been saved correctly.');
         }
-        console.log(`[${jobId}] Verified: Data successfully stored in database`);
+        console.log(`[${jobId}] Verified: ${storedCount.length} record(s) found in database (sample check)`);
       } catch (verifyError: any) {
         console.error(`[${jobId}] Verification error:`, verifyError);
+        console.error(`[${jobId}] Verification error stack:`, verifyError?.stack);
         throw new Error(`Storage verification failed: ${verifyError.message}`);
       }
       
@@ -204,6 +226,9 @@ async function processUploadInBackground(
         path: '/',
       });
 
+      const totalTime = ((Date.now() - startTime) / 1000).toFixed(2);
+      console.log(`[${jobId}] Background processing completed successfully in ${totalTime}s`);
+      
       updateUploadJob(jobId, {
         status: 'completed',
         progress: 100,
@@ -226,15 +251,21 @@ async function processUploadInBackground(
       return; // Exit early on storage error
     }
   } catch (error: any) {
-    console.error(`[${jobId}] Background processing error:`, error);
-    console.error(`[${jobId}] Error stack:`, error.stack);
+    const totalTime = ((Date.now() - startTime) / 1000).toFixed(2);
+    console.error(`[${jobId}] Background processing FAILED after ${totalTime}s`);
+    console.error(`[${jobId}] Error:`, error);
+    console.error(`[${jobId}] Error stack:`, error?.stack);
     console.error(`[${jobId}] Error details:`, JSON.stringify(error, Object.getOwnPropertyNames(error), 2));
     updateUploadJob(jobId, {
       status: 'failed',
-      error: error.message || 'Processing failed',
+      error: error?.message || 'Processing failed',
       progress: 0,
-      message: `Processing failed: ${error.message || 'Unknown error'}`,
+      message: `Processing failed: ${error?.message || 'Unknown error'}`,
     });
+    // Don't re-throw - we've already logged and updated the job status
+  } finally {
+    const totalTime = ((Date.now() - startTime) / 1000).toFixed(2);
+    console.log(`[${jobId}] Background processing function finished (total time: ${totalTime}s)`);
   }
 }
 
@@ -318,13 +349,14 @@ export async function POST(request: NextRequest) {
     // Note: In serverless environments, this might not complete if the function times out
     // For production, use a proper job queue (e.g., Bull, BullMQ, or a cloud service)
     processUploadInBackground(jobId, arrayBuffer, buffer, fileName, userId, accessToken, cookieStore).catch((error) => {
-      console.error('Background processing error:', error);
-      console.error('Error stack:', error.stack);
+      console.error(`[${jobId}] Background processing error:`, error);
+      console.error(`[${jobId}] Error stack:`, error?.stack);
+      console.error(`[${jobId}] Error details:`, JSON.stringify(error, Object.getOwnPropertyNames(error), 2));
       updateUploadJob(jobId, {
         status: 'failed',
-        error: error.message || 'Processing failed',
+        error: error?.message || 'Processing failed',
         progress: 0,
-        message: 'Processing failed',
+        message: `Processing failed: ${error?.message || 'Unknown error'}`,
       });
     });
 
