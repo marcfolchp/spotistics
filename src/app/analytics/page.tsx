@@ -131,12 +131,6 @@ function AnalyticsContent() {
                     Social
                   </button>
                   <button
-                    onClick={() => router.push('/upload')}
-                    className="rounded-full bg-[#1DB954] px-4 py-2 text-xs font-semibold text-white transition-all hover:bg-[#1ed760] active:scale-95 sm:px-4 sm:py-2 sm:text-xs lg:px-5 lg:text-sm"
-                  >
-                    Upload
-                  </button>
-                  <button
                     onClick={logout}
                     className="rounded-full px-3 py-2 text-xs font-medium text-[#B3B3B3] transition-colors hover:text-white active:scale-95 sm:px-3 sm:text-xs lg:px-4 lg:text-sm"
                   >
@@ -150,12 +144,6 @@ function AnalyticsContent() {
         <main className="mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-8">
           <div className="rounded-lg border border-red-500/50 bg-red-900/20 p-6">
             <p className="text-red-400">{error}</p>
-            <button
-              onClick={() => router.push('/upload')}
-              className="mt-4 rounded-full bg-[#1DB954] px-4 py-2 text-sm font-semibold text-white transition-all hover:scale-105 hover:bg-[#1ed760] active:scale-95"
-            >
-              Upload Data
-            </button>
           </div>
         </main>
       </div>
@@ -278,22 +266,10 @@ function AnalyticsContent() {
           ) : error ? (
             <div className="rounded-lg border border-red-500/50 bg-red-900/20 p-6">
               <p className="text-red-400">{error}</p>
-              <button
-                onClick={() => router.push('/upload')}
-                className="mt-4 rounded-full bg-[#1DB954] px-4 py-2 text-sm font-semibold text-white transition-all hover:scale-105 hover:bg-[#1ed760] active:scale-95"
-              >
-                Upload Data
-              </button>
             </div>
           ) : !summary && !isLoading ? (
             <div className="rounded-lg bg-[#181818] p-6">
-              <p className="text-[#B3B3B3]">No data available. Please upload your Spotify data export.</p>
-              <button
-                onClick={() => router.push('/upload')}
-                className="mt-4 rounded-full bg-[#1DB954] px-4 py-2 text-sm font-semibold text-white transition-all hover:scale-105 hover:bg-[#1ed760] active:scale-95"
-              >
-                Upload Data
-              </button>
+              <p className="text-[#B3B3B3]">No data available.</p>
             </div>
           ) : summary ? (
             <>
@@ -310,14 +286,8 @@ function AnalyticsContent() {
                       </p>
                       <p className="mt-1 text-xs text-[#B3B3B3] leading-relaxed">
                         You're currently viewing {summary.total_tracks.toLocaleString()} tracks from {getTimeRangeLabel(timeRange).toLowerCase()}. 
-                        To see your complete listening history ({allTimeTotalCount.toLocaleString()} tracks total), upload your full Spotify data export.
+                        Your complete listening history contains {allTimeTotalCount.toLocaleString()} tracks total.
                       </p>
-                      <button
-                        onClick={() => router.push('/upload')}
-                        className="mt-2 text-xs font-semibold text-[#1DB954] transition-colors hover:text-[#1ed760] underline"
-                      >
-                        Upload Full Data →
-                      </button>
                     </div>
                   </div>
                 </div>

@@ -561,12 +561,6 @@ function SocialManageContent() {
                   Social
                 </button>
                 <button
-                  onClick={() => router.push('/upload')}
-                  className="rounded-full bg-[#1DB954] px-4 py-2 text-xs font-semibold text-white transition-all hover:bg-[#1ed760] active:scale-95 sm:px-4 sm:py-2 sm:text-xs lg:px-5 lg:text-sm"
-                >
-                  Upload
-                </button>
-                <button
                   onClick={logout}
                   className="rounded-full px-3 py-2 text-xs font-medium text-[#B3B3B3] transition-colors hover:text-white active:scale-95 sm:px-3 sm:text-xs lg:px-4 lg:text-sm"
                 >

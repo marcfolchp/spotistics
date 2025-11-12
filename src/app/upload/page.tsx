@@ -3,7 +3,7 @@
 import { ProtectedRoute } from '@/components/auth/ProtectedRoute';
 import { MobileNav } from '@/components/navigation/MobileNav';
 import { useSession } from '@/contexts/SessionContext';
-import { useState, useEffect, useRef } from 'react';
+import { useState, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 
 export default function UploadPage() {
@@ -23,151 +23,7 @@ function UploadContent() {
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
   const [fileName, setFileName] = useState<string | null>(null);
-  const [jobId, setJobId] = useState<string | null>(null);
-  const [hasExistingData, setHasExistingData] = useState<boolean | null>(null); // null = checking, true = has data, false = no data
-  const pollingIntervalRef = useRef<NodeJS.Timeout | null>(null);
-
-  // Check if user has existing data on mount
-  useEffect(() => {
-    const checkExistingData = async () => {
-      try {
-        const response = await fetch('/api/analytics/data?summary=true&timeRange=all', {
-          credentials: 'include',
-        });
-        if (response.ok) {
-          const data = await response.json();
-          if (data.summary && data.summary.total_tracks > 0) {
-            setHasExistingData(true);
-          } else {
-            setHasExistingData(false);
-          }
-        } else {
-          setHasExistingData(false);
-        }
-      } catch (err) {
-        console.error('Error checking existing data:', err);
-        setHasExistingData(false);
-      }
-    };
-    checkExistingData();
-  }, []);
-
-  // Load jobId from localStorage on mount to recover from refresh
-  useEffect(() => {
-    const savedJobId = localStorage.getItem('uploadJobId');
-    const savedFileName = localStorage.getItem('uploadFileName');
-    if (savedJobId && savedFileName) {
-      // Check job age first - if too old, clear it immediately
-      const jobIdParts = savedJobId.split('-');
-      if (jobIdParts.length >= 2) {
-        const timestamp = parseInt(jobIdParts[jobIdParts.length - 1]);
-        const age = Date.now() - timestamp;
-        const ageMinutes = age / 1000 / 60;
-        
-        // If job is older than 10 minutes, clear it immediately (very aggressive)
-        if (ageMinutes > 10) {
-          console.log('Job is too old, clearing localStorage');
-          localStorage.removeItem('uploadJobId');
-          localStorage.removeItem('uploadFileName');
-          // Check if data exists
-          fetch('/api/analytics/data?summary=true&timeRange=all', {
-            credentials: 'include',
-          }).then(res => res.json()).then(data => {
-            if (data.summary && data.summary.total_tracks > 0) {
-              setHasExistingData(true);
-            }
-          }).catch(() => {});
-          return;
-        }
-      }
-      
-      // Check if job is still active
-      const checkJob = async () => {
-        try {
-          const response = await fetch(`/api/upload/status?jobId=${savedJobId}`, {
-            credentials: 'include',
-          });
-          if (response.ok) {
-            const job = await response.json();
-            if (job.status === 'completed') {
-              // Job completed, clear storage and show success
-              localStorage.removeItem('uploadJobId');
-              localStorage.removeItem('uploadFileName');
-              setHasExistingData(true); // Mark as having data
-              setSuccess(true);
-              setUploadProgress(100);
-              setTimeout(() => {
-                router.push('/analytics');
-              }, 2000);
-            } else if (job.status === 'failed') {
-              // Job failed, clear storage
-              localStorage.removeItem('uploadJobId');
-              localStorage.removeItem('uploadFileName');
-              setError(job.error || 'Upload failed. Please try again.');
-            } else {
-              // Job still processing, but only resume if progress is reasonable
-              // If stuck at 95% for a while, don't resume polling
-              const currentProgress = job.progress || 0;
-              const jobIdParts = savedJobId.split('-');
-              let jobAgeMinutes = 0;
-              if (jobIdParts.length >= 2) {
-                const timestamp = parseInt(jobIdParts[jobIdParts.length - 1]);
-                const age = Date.now() - timestamp;
-                jobAgeMinutes = age / 1000 / 60;
-              }
-              if (currentProgress >= 95 && jobAgeMinutes > 10) {
-                // Likely stuck, clear and check data
-                localStorage.removeItem('uploadJobId');
-                localStorage.removeItem('uploadFileName');
-                fetch('/api/analytics/data?summary=true&timeRange=all', {
-                  credentials: 'include',
-                }).then(res => res.json()).then(data => {
-                  if (data.summary && data.summary.total_tracks > 0) {
-                    setHasExistingData(true);
-                    setSuccess(true);
-                    setUploadProgress(100);
-                    setTimeout(() => {
-                      router.push('/analytics');
-                    }, 2000);
-                  } else {
-                    setError('Upload appears to be stuck. Please try uploading again.');
-                  }
-                }).catch(() => {
-                  setError('Upload appears to be stuck. Please try uploading again.');
-                });
-              } else {
-                // Resume polling
-                setJobId(savedJobId);
-                setFileName(savedFileName);
-                setIsUploading(true);
-                setUploadProgress(currentProgress);
-                setCurrentStage(job.message || 'Processing...');
-                pollJobStatus(savedJobId);
-              }
-            }
-          } else if (response.status === 404) {
-            // Job not found, clear storage
-            localStorage.removeItem('uploadJobId');
-            localStorage.removeItem('uploadFileName');
-            // Check if data exists
-            fetch('/api/analytics/data?summary=true&timeRange=all', {
-              credentials: 'include',
-            }).then(res => res.json()).then(data => {
-              if (data.summary && data.summary.total_tracks > 0) {
-                setHasExistingData(true);
-              }
-            }).catch(() => {});
-          }
-        } catch (err) {
-          // If we can't check, clear storage
-          console.error('Error checking job status:', err);
-          localStorage.removeItem('uploadJobId');
-          localStorage.removeItem('uploadFileName');
-        }
-      };
-      checkJob();
-    }
-  }, [router]);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleLogout = async () => {
     await logout();
@@ -178,8 +34,8 @@ function UploadContent() {
     if (!file) return;
 
     // Validate file type
-    if (!file.name.endsWith('.json') && !file.name.endsWith('.zip')) {
-      setError('Please upload a JSON file or ZIP file containing your Spotify data export.');
+    if (!file.name.endsWith('.zip')) {
+      setError('Please upload a ZIP file containing your Spotify Extended Streaming History.');
       return;
     }
 
@@ -188,6 +44,7 @@ function UploadContent() {
     setSuccess(false);
     setIsUploading(true);
     setUploadProgress(0);
+    setCurrentStage('Preparing upload...');
 
     try {
       const formData = new FormData();
@@ -195,11 +52,10 @@ function UploadContent() {
 
       const xhr = new XMLHttpRequest();
 
-      // Track file upload progress (only 0-15% - file transfer is fast)
-      // The rest (15-100%) is for processing on the server
+      // Track file upload progress (0-10% - file transfer)
       xhr.upload.addEventListener('progress', (e) => {
         if (e.lengthComputable) {
-          const fileUploadPercent = (e.loaded / e.total) * 15; // File upload is only 0-15%
+          const fileUploadPercent = (e.loaded / e.total) * 10; // File upload is only 0-10%
           setUploadProgress(fileUploadPercent);
         }
       });
@@ -208,24 +64,16 @@ function UploadContent() {
         if (xhr.status === 200) {
           try {
             const response = JSON.parse(xhr.responseText);
-            if (response.jobId) {
-              // File upload complete, smoothly transition to processing (15%+)
-              // Don't reset progress - file upload was 0-15%, now continue from 15%
-              setJobId(response.jobId);
-              // Store jobId in localStorage for persistence
-              localStorage.setItem('uploadJobId', response.jobId);
-              localStorage.setItem('uploadFileName', file.name);
-              // Small delay to ensure job is initialized on server before polling
-              setTimeout(() => {
-                pollJobStatus(response.jobId);
-              }, 100);
-            } else {
-              // Legacy response (immediate success)
+            if (response.success) {
               setSuccess(true);
               setUploadProgress(100);
+              setCurrentStage('Upload completed successfully!');
               setTimeout(() => {
                 router.push('/analytics');
               }, 2000);
+            } else {
+              setError(response.error || 'Upload failed. Please try again.');
+              setIsUploading(false);
             }
           } catch (err) {
             setError('Failed to parse response. Please try again.');
@@ -243,6 +91,15 @@ function UploadContent() {
         setIsUploading(false);
       });
 
+      // Track processing progress from server (10-100%)
+      xhr.addEventListener('progress', (e) => {
+        if (e.lengthComputable && e.total > 0) {
+          // This is for download progress, but we can use it to track server processing
+          const processingPercent = 10 + (e.loaded / e.total) * 90;
+          setUploadProgress(Math.min(processingPercent, 95));
+        }
+      });
+
       xhr.open('POST', '/api/upload');
       xhr.send(formData);
     } catch (err) {
@@ -250,274 +107,6 @@ function UploadContent() {
       setError('An error occurred while uploading the file. Please try again.');
       setIsUploading(false);
     }
-  };
-
-  const stopUpload = () => {
-    // Clear polling interval
-    if (pollingIntervalRef.current) {
-      clearInterval(pollingIntervalRef.current);
-      pollingIntervalRef.current = null;
-    }
-    
-    // Clear localStorage
-    localStorage.removeItem('uploadJobId');
-    localStorage.removeItem('uploadFileName');
-    
-    // Reset state
-    setIsUploading(false);
-    setJobId(null);
-    setFileName(null);
-    setUploadProgress(0);
-    setCurrentStage('');
-    setError('Upload cancelled by user.');
-  };
-
-  const pollJobStatus = async (id: string) => {
-    // Check job age first - if already old, stop immediately
-    const jobIdParts = id.split('-');
-    if (jobIdParts.length >= 2) {
-      const timestamp = parseInt(jobIdParts[jobIdParts.length - 1]);
-      const age = Date.now() - timestamp;
-      const ageMinutes = age / 1000 / 60;
-      
-      // If job is older than 15 minutes, stop immediately and check data
-      if (ageMinutes > 15) {
-        console.log('Job is too old, stopping polling immediately');
-        localStorage.removeItem('uploadJobId');
-        localStorage.removeItem('uploadFileName');
-        try {
-          const checkResponse = await fetch('/api/analytics/data?timeRange=all', {
-            credentials: 'include',
-          });
-          if (checkResponse.ok) {
-            const data = await checkResponse.json();
-            if (data.summary && data.summary.total_tracks > 0) {
-              setHasExistingData(true);
-              setSuccess(true);
-              setUploadProgress(100);
-              setCurrentStage('Upload completed');
-              setTimeout(() => {
-                router.push('/analytics');
-              }, 2000);
-              return;
-            }
-          }
-        } catch (err) {
-          console.error('Error checking data:', err);
-        }
-        setError('Upload job expired. Please check your analytics page or try uploading again.');
-        setIsUploading(false);
-        return;
-      }
-    }
-    
-    let errorCount = 0;
-    let dataCheckDone = false;
-    const startTime = Date.now();
-    const maxPollingTime = 5 * 60 * 1000; // 5 minutes max (very aggressive)
-    let lastProgress = 0;
-    let stuckProgressCount = 0;
-    const maxStuckCount = 5; // 5 polls (~50 seconds) with same progress - very aggressive
-    
-    // Store interval reference so we can clear it
-    const pollInterval = setInterval(async () => {
-      // Check if we've been polling too long
-      const elapsed = Date.now() - startTime;
-      if (elapsed > maxPollingTime) {
-        clearInterval(pollInterval);
-        localStorage.removeItem('uploadJobId');
-        localStorage.removeItem('uploadFileName');
-        // Check if data was uploaded despite timeout
-        try {
-          const checkResponse = await fetch('/api/analytics/data?timeRange=all', {
-            credentials: 'include',
-          });
-          if (checkResponse.ok) {
-            const data = await checkResponse.json();
-            if (data.summary && data.summary.total_tracks > 0) {
-              setHasExistingData(true);
-              setSuccess(true);
-              setUploadProgress(100);
-              setCurrentStage('Upload completed (timeout reached)');
-              setTimeout(() => {
-                router.push('/analytics');
-              }, 2000);
-              return;
-            }
-          }
-        } catch (err) {
-          console.error('Error checking data after timeout:', err);
-        }
-        setError('Upload timed out. Please check your analytics page or try uploading again.');
-        setIsUploading(false);
-        return;
-      }
-      try {
-        const response = await fetch(`/api/upload/status?jobId=${id}`, {
-          credentials: 'include',
-        });
-        
-        if (response.ok) {
-          errorCount = 0; // Reset error count on success
-          const job = await response.json();
-          
-          const currentProgress = job.progress || 0;
-          
-          // Check if progress is stuck
-          if (currentProgress === lastProgress && currentProgress > 0 && currentProgress < 100) {
-            stuckProgressCount++;
-            if (stuckProgressCount >= maxStuckCount) {
-              // Progress stuck for too long, check if data exists and stop polling
-              clearInterval(pollInterval);
-              localStorage.removeItem('uploadJobId');
-              localStorage.removeItem('uploadFileName');
-              try {
-                const checkResponse = await fetch('/api/analytics/data?timeRange=all', {
-                  credentials: 'include',
-                });
-                if (checkResponse.ok) {
-                  const data = await checkResponse.json();
-                  if (data.summary && data.summary.total_tracks > 0) {
-                    setHasExistingData(true);
-                    setSuccess(true);
-                    setUploadProgress(100);
-                    setCurrentStage('Upload completed (progress appeared stuck)');
-                    setTimeout(() => {
-                      router.push('/analytics');
-                    }, 2000);
-                    return;
-                  }
-                }
-              } catch (err) {
-                console.error('Error checking data after stuck progress:', err);
-              }
-              setError('Upload appears to be stuck. Please check your analytics page or try uploading again.');
-              setIsUploading(false);
-              return;
-            }
-          } else {
-            stuckProgressCount = 0; // Reset if progress changed
-            lastProgress = currentProgress;
-          }
-          
-          // Ensure progress never goes backwards (smooth progress bar)
-          // Also ensure we don't go below 15% (file upload is already done)
-          setUploadProgress((prev) => Math.max(15, Math.max(prev, currentProgress)));
-          setCurrentStage(job.message || 'Processing...');
-          
-          if (job.status === 'completed') {
-            clearInterval(pollInterval);
-            // Clear localStorage on success
-            localStorage.removeItem('uploadJobId');
-            localStorage.removeItem('uploadFileName');
-            setHasExistingData(true); // Mark as having data after successful upload
-            setSuccess(true);
-            setUploadProgress(100);
-            setTimeout(() => {
-              router.push('/analytics');
-            }, 2000);
-          } else if (job.status === 'failed') {
-            clearInterval(pollInterval);
-            // Clear localStorage on failure
-            localStorage.removeItem('uploadJobId');
-            localStorage.removeItem('uploadFileName');
-            setError(job.error || 'Processing failed. Please try again.');
-            setIsUploading(false);
-          }
-        } else if (response.status === 404) {
-          // Job not found - check if data was actually uploaded (only once)
-          if (!dataCheckDone) {
-            dataCheckDone = true;
-            console.warn('Job not found, checking if upload completed...');
-            
-            // Check if data exists by trying to fetch analytics data
-            try {
-              const checkResponse = await fetch('/api/analytics/data?timeRange=all', {
-                credentials: 'include',
-              });
-              if (checkResponse.ok) {
-                const data = await checkResponse.json();
-                // If we have data, the upload likely completed
-                if (data.summary && data.summary.total_tracks > 0) {
-                  clearInterval(pollInterval);
-                  localStorage.removeItem('uploadJobId');
-                  localStorage.removeItem('uploadFileName');
-                  setHasExistingData(true); // Mark as having data
-                  setSuccess(true);
-                  setUploadProgress(100);
-                  setCurrentStage('Upload completed successfully!');
-                  setTimeout(() => {
-                    router.push('/analytics');
-                  }, 2000);
-                  return;
-                }
-              }
-            } catch (checkErr) {
-              console.error('Error checking data:', checkErr);
-            }
-          }
-          
-          // If job is recent (less than 15 minutes), keep polling
-          // Otherwise, show error
-          const jobIdParts = id.split('-');
-          if (jobIdParts.length >= 2) {
-            const timestamp = parseInt(jobIdParts[jobIdParts.length - 1]);
-            const age = Date.now() - timestamp;
-            const ageMinutes = age / 1000 / 60;
-            
-            if (ageMinutes > 15) {
-              // Job too old, likely lost
-              clearInterval(pollInterval);
-              localStorage.removeItem('uploadJobId');
-              localStorage.removeItem('uploadFileName');
-              setError('Upload job was lost. The file may still be processing. Please check your analytics page or try uploading again.');
-              setIsUploading(false);
-            }
-            // Otherwise continue polling (job might still be processing)
-          } else {
-            // Invalid job ID format
-            clearInterval(pollInterval);
-            localStorage.removeItem('uploadJobId');
-            localStorage.removeItem('uploadFileName');
-            setError('Invalid upload job. Please try uploading again.');
-            setIsUploading(false);
-          }
-        } else {
-          // Server error - retry a few times before giving up
-          errorCount++;
-          const errorData = await response.json().catch(() => ({}));
-          console.error('Error checking upload status:', errorData);
-          
-          if (errorCount >= 5) {
-            clearInterval(pollInterval);
-            setError('Unable to check upload status. Please check your analytics page to see if the upload completed.');
-            setIsUploading(false);
-          }
-        }
-      } catch (err) {
-        errorCount++;
-        console.error('Error polling job status:', err);
-        // Give up after 5 consecutive network errors
-        if (errorCount >= 5) {
-          clearInterval(pollInterval);
-          setError('Network error while checking upload status. Please check your analytics page to see if the upload completed.');
-          setIsUploading(false);
-        }
-      }
-    }, 1000); // Poll every second
-    
-    // Store interval reference
-    pollingIntervalRef.current = pollInterval;
-    
-    // Cleanup after 15 minutes (increased timeout for large files)
-    setTimeout(() => {
-      clearInterval(pollInterval);
-      if (isUploading) {
-        // Don't clear localStorage - user might refresh and check later
-        setError('Upload is taking longer than expected. You can close this page and check back later. The upload will continue processing in the background.');
-        setIsUploading(false);
-      }
-    }, 15 * 60 * 1000);
   };
 
   return (
@@ -589,7 +178,7 @@ function UploadContent() {
               Upload Your Spotify Data
             </h2>
             <p className="mt-2 text-sm text-[#B3B3B3] sm:text-base">
-              Upload your Spotify data export to analyze your complete listening history.
+              Upload your Spotify Extended Streaming History ZIP file to analyze your complete listening history.
             </p>
           </div>
 
@@ -607,48 +196,25 @@ function UploadContent() {
                   <li>Click "Request data" and wait for the email</li>
                   <li>Download the ZIP file from the email</li>
                   <li>Upload the ZIP file directly (we'll extract it automatically)</li>
-                  <li>Or extract the ZIP and upload the <code className="rounded bg-[#2A2A2A] px-1 py-0.5 text-[10px] text-[#1DB954] sm:text-xs">StreamingHistory_music*.json</code> file(s)</li>
                 </ol>
               </div>
 
               {/* File Upload */}
               <div className="space-y-4">
-                {hasExistingData === true ? (
-                  <div className="rounded-lg border border-[#1DB954]/30 bg-[#1DB954]/10 p-4">
-                    <div className="flex items-start gap-3">
-                      <svg className="h-5 w-5 flex-shrink-0 text-[#1DB954] mt-0.5" fill="currentColor" viewBox="0 0 20 20">
-                        <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-                      </svg>
-                      <div className="flex-1">
-                        <p className="text-sm font-semibold text-white">
-                          Already uploaded data
-                        </p>
-                        <p className="mt-1 text-xs text-[#B3B3B3]">
-                          You have already uploaded your Spotify data. If you want to update it with a new export, you can upload again (this will replace your existing data).
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-                ) : null}
-                
                 <label className="block">
                   <span className="text-sm font-medium text-white">
-                    Select your Spotify data file
+                    Select your Spotify Extended Streaming History ZIP file
                   </span>
                   <div className="mt-2">
                     <input
+                      ref={fileInputRef}
                       type="file"
-                      accept=".json,.zip"
+                      accept=".zip"
                       onChange={handleFileSelect}
-                      disabled={isUploading || hasExistingData === null}
+                      disabled={isUploading}
                       className="block w-full text-sm text-[#B3B3B3] file:mr-4 file:rounded-full file:border-0 file:bg-[#1DB954] file:px-4 file:py-2 file:text-sm file:font-semibold file:text-white hover:file:bg-[#1ed760] disabled:opacity-50 disabled:cursor-not-allowed"
                     />
                   </div>
-                  {hasExistingData === null && (
-                    <p className="mt-2 text-xs text-[#6A6A6A]">
-                      Checking for existing data...
-                    </p>
-                  )}
                 </label>
 
                 {fileName && !isUploading && !success && (
@@ -674,22 +240,6 @@ function UploadContent() {
                         style={{ width: `${uploadProgress}%` }}
                       />
                     </div>
-                    <div className="flex items-center justify-between gap-3 mt-6">
-                      {jobId && (
-                        <div className="flex-1 rounded-lg border border-[#1DB954]/30 bg-[#1DB954]/10 p-3 text-xs text-[#1DB954]">
-                          <p className="font-semibold mb-1">Upload in progress</p>
-                          <p className="text-[#B3B3B3]">
-                            You can safely close this page and check back later.
-                          </p>
-                        </div>
-                      )}
-                      <button
-                        onClick={stopUpload}
-                        className="rounded-lg border border-red-500/50 bg-red-500/10 px-4 py-2 text-sm font-semibold text-red-400 transition-all hover:bg-red-500/20 active:scale-95"
-                      >
-                        Stop Upload
-                      </button>
-                    </div>
                   </div>
                 )}
 
@@ -697,7 +247,7 @@ function UploadContent() {
                 {success && (
                   <div className="rounded-lg border border-[#1DB954]/50 bg-[#1DB954]/10 p-4 text-sm text-[#1DB954]">
                     <p className="font-semibold">Upload successful!</p>
-                    <p className="mt-1">Redirecting to dashboard...</p>
+                    <p className="mt-1">Redirecting to analytics...</p>
                   </div>
                 )}
 
